@@ -1,0 +1,23 @@
+{
+  "name": "card-installments-app",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "pnpm@11.0.7",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "pnpm --parallel --filter @card-manager/api --filter @card-manager/web dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint",
+    "db:migrate": "pnpm --filter @card-manager/api db:migrate",
+    "db:seed": "pnpm --filter @card-manager/api db:seed"
+  },
+  "pnpm": {
+    "ignoredBuiltDependencies": [
+      "@scarf/scarf"
+    ]
+  }
+}

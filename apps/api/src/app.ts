@@ -1,0 +1,28 @@
+import express from 'express';
+import swaggerUi from 'swagger-ui-express';
+import { applySecurity } from './middleware/security.js';
+import authRoutes from './routes/auth.js';
+import cardsRoutes from './routes/cards.js';
+import categoriesRoutes from './routes/categories.js';
+import expensesRoutes from './routes/expenses.js';
+import reportsRoutes from './routes/reports.js';
+import usersRoutes from './routes/users.js';
+import { swaggerSpec } from './swagger.js';
+
+export function createApp() {
+  const app = express();
+  applySecurity(app);
+  app.use(express.json({ limit: '100kb' }));
+
+  app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
+  app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  app.use('/api/auth', authRoutes);
+  app.use('/api/users', usersRoutes);
+  app.use('/api/cards', cardsRoutes);
+  app.use('/api/categories', categoriesRoutes);
+  app.use('/api/expenses', expensesRoutes);
+  app.use('/api/reports', reportsRoutes);
+
+  app.use((_req, res) => res.status(404).json({ message: 'Rota nao encontrada' }));
+  return app;
+}
