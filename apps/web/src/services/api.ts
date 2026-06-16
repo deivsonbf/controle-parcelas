@@ -6,6 +6,28 @@ export class ApiError extends Error {
   }
 }
 
+type ApiErrorBody = {
+  message?: string;
+  issues?: {
+    fieldErrors?: Record<string, string[] | undefined>;
+    formErrors?: string[];
+  };
+};
+
+function formatApiError(data: ApiErrorBody) {
+  const fieldErrors = data.issues?.fieldErrors;
+  if (fieldErrors) {
+    const firstFieldError = Object.entries(fieldErrors).find(([, errors]) => errors?.length);
+    if (firstFieldError) {
+      const [field, errors] = firstFieldError;
+      return `${field}: ${errors?.[0]}`;
+    }
+  }
+
+  const formError = data.issues?.formErrors?.[0];
+  return formError ?? data.message ?? 'Erro inesperado';
+}
+
 export function getToken() {
   return localStorage.getItem('token');
 }
@@ -27,8 +49,8 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   });
 
   if (!response.ok) {
-    const data = await response.json().catch(() => ({ message: 'Erro inesperado' }));
-    throw new ApiError(response.status, data.message);
+    const data = await response.json().catch(() => ({ message: 'Erro inesperado' })) as ApiErrorBody;
+    throw new ApiError(response.status, formatApiError(data));
   }
 
   if (response.status === 204) return undefined as T;

@@ -24,6 +24,14 @@ const icons = {
   info: Info
 };
 
+function createToastId() {
+  if (globalThis.crypto && 'randomUUID' in globalThis.crypto) {
+    return globalThis.crypto.randomUUID();
+  }
+
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
@@ -32,7 +40,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const show = useCallback((type: ToastType, title: string, message?: string) => {
-    const id = crypto.randomUUID();
+    const id = createToastId();
     setToasts((current) => [...current, { id, type, title, message }]);
     window.setTimeout(() => remove(id), 4500);
   }, [remove]);
