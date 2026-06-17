@@ -65,7 +65,7 @@ SELECT
     DATE_TRUNC('month', e.purchase_date)::DATE
     + (
       (
-        gs.installment_number - 1
+        gs.installment_number
         + CASE
             WHEN EXTRACT(DAY FROM e.purchase_date)::INTEGER > c.closing_day THEN 1
             ELSE 0
