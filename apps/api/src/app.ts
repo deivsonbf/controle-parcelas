@@ -15,7 +15,13 @@ export function createApp() {
   app.use(express.json({ limit: '100kb' }));
 
   app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
-  app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  app.get('/docs.json', (_req, res) => res.json(swaggerSpec));
+  app.use('/docs', swaggerUi.serve, swaggerUi.setup(undefined, {
+    swaggerOptions: {
+      url: '/docs.json'
+    },
+    customSiteTitle: 'Card Installments API'
+  }));
   app.use('/api/auth', authRoutes);
   app.use('/api/users', usersRoutes);
   app.use('/api/cards', cardsRoutes);
