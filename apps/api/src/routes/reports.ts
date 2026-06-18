@@ -25,6 +25,8 @@ router.get('/monthly-installments', async (req, res) => {
               total_installments AS "totalInstallments",
               installment_amount AS "installmentAmount",
               reference_month AS "referenceMonth",
+              invoice_month AS "invoiceMonth",
+              payment_date AS "paymentDate",
               description,
               total_amount AS "totalAmount",
               purchase_date AS "purchaseDate",

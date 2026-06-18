@@ -13,6 +13,8 @@ export type MonthlyInstallment = {
   totalInstallments: number;
   installmentAmount: string;
   referenceMonth: string;
+  invoiceMonth: string;
+  paymentDate: string;
   description: string;
   totalAmount: string;
   purchaseDate: string;
