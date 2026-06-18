@@ -1,4 +1,6 @@
-CREATE OR REPLACE VIEW expense_installments AS
+DROP VIEW IF EXISTS expense_installments;
+
+CREATE VIEW expense_installments AS
 SELECT
   e.id AS expense_id,
   gs.installment_number,
