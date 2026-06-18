@@ -1,10 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Copy, KeyRound } from 'lucide-react';
 import { StatCard } from '../components/StatCard';
 import { api } from '../services/api';
 import type { MonthlyResponse, User } from '../types/api';
-import { money } from '../utils';
+import { copyText, money } from '../utils';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import { createPixPayload } from '../services/pix';
+
+const pixKey = import.meta.env.VITE_PIX_KEY ?? '';
+const pixReceiverName = import.meta.env.VITE_PIX_RECEIVER_NAME ?? 'DEIVSON BEZERRA';
+const pixReceiverCity = import.meta.env.VITE_PIX_RECEIVER_CITY ?? 'SAO PAULO';
 
 export function DashboardPage() {
   const { user } = useAuth();
@@ -40,6 +46,25 @@ export function DashboardPage() {
     return Array.from(map.entries());
   }, [data]);
 
+  const pixPayload = useMemo(() => {
+    if (!pixKey) return '';
+    return createPixPayload({
+      key: pixKey,
+      amount: data?.total ?? 0,
+      receiverName: pixReceiverName,
+      receiverCity: pixReceiverCity
+    });
+  }, [data?.total]);
+
+  async function copyPix(value: string, label: string) {
+    try {
+      await copyText(value);
+      toast.success(`${label} copiado`);
+    } catch {
+      toast.error(`Nao foi possivel copiar ${label.toLowerCase()}`);
+    }
+  }
+
   return (
     <section className="page">
       <div className="page-header">
@@ -62,6 +87,36 @@ export function DashboardPage() {
         <StatCard label="Parcelas" value={String(data?.items.length ?? 0)} tone="green" />
         <StatCard label="Categorias" value={String(byCategory.length)} tone="amber" />
       </div>
+
+      {user?.role === 'user' && pixKey && (
+        <div className="pix-panel">
+          <div className="pix-heading">
+            <div className="pix-icon"><KeyRound size={22} /></div>
+            <div>
+              <h2>Pagamento via PIX</h2>
+              <span>Valor deste mes: {money(data?.total ?? 0)}</span>
+            </div>
+          </div>
+
+          <div className="pix-key-row">
+            <div>
+              <span>Chave PIX</span>
+              <strong>{pixKey}</strong>
+            </div>
+            <button className="icon-button" type="button" title="Copiar chave PIX" onClick={() => copyPix(pixKey, 'Chave PIX')}>
+              <Copy size={18} />
+            </button>
+          </div>
+
+          <div className="pix-copy-code">
+            <span>PIX copia e cola</span>
+            <code>{pixPayload}</code>
+            <button className="secondary-button" type="button" onClick={() => copyPix(pixPayload, 'Codigo PIX')}>
+              <Copy size={17} />Copiar codigo
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="split-grid">
         <div className="panel">

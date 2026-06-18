@@ -1,13 +1,14 @@
 import { FormEvent, useEffect, useState } from 'react';
+import { Trash2 } from 'lucide-react';
 import { api } from '../services/api';
 import type { Card, Category, Expense, User } from '../types/api';
-import { money } from '../utils';
+import { currencyInputToNumber, formatCurrencyInput, money } from '../utils';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 
 const emptyForm = {
   description: '',
-  totalAmount: 0,
+  totalAmount: '',
   installments: 1,
   purchaseDate: new Date().toISOString().slice(0, 10),
   userId: '',
@@ -50,7 +51,13 @@ export function ExpensesPage() {
     event.preventDefault();
     setSubmitting(true);
     try {
-      await api('/expenses', { method: 'POST', body: JSON.stringify(form) });
+      await api('/expenses', {
+        method: 'POST',
+        body: JSON.stringify({
+          ...form,
+          totalAmount: currencyInputToNumber(form.totalAmount)
+        })
+      });
       toast.success('Compra cadastrada', 'As parcelas ja aparecem no resumo mensal.');
       setForm(emptyForm);
       load();
@@ -58,6 +65,20 @@ export function ExpensesPage() {
       toast.error('Erro ao cadastrar compra', error instanceof Error ? error.message : undefined);
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function removeExpense(expense: Expense) {
+    if (!window.confirm(`Excluir a compra "${expense.description}"? Todas as parcelas serao removidas.`)) {
+      return;
+    }
+
+    try {
+      await api(`/expenses/${expense.id}`, { method: 'DELETE' });
+      toast.success('Compra excluida', 'As parcelas foram removidas dos resumos mensais.');
+      load();
+    } catch (error) {
+      toast.error('Erro ao excluir compra', error instanceof Error ? error.message : undefined);
     }
   }
 
@@ -72,7 +93,13 @@ export function ExpensesPage() {
       {isAdmin && (
         <form className="panel form-grid" onSubmit={submit}>
           <input placeholder="Descricao" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-          <input type="number" step="0.01" placeholder="Valor total" value={form.totalAmount || ''} onChange={(e) => setForm({ ...form, totalAmount: Number(e.target.value) })} />
+          <input
+            inputMode="numeric"
+            placeholder="Valor total"
+            value={form.totalAmount}
+            onChange={(e) => setForm({ ...form, totalAmount: formatCurrencyInput(e.target.value) })}
+            required
+          />
           <input type="number" min={1} max={120} placeholder="Parcelas" value={form.installments} onChange={(e) => setForm({ ...form, installments: Number(e.target.value) })} />
           <input type="date" value={form.purchaseDate} onChange={(e) => setForm({ ...form, purchaseDate: e.target.value })} />
           <select value={form.userId} onChange={(e) => setForm({ ...form, userId: e.target.value })} required>
@@ -104,6 +131,7 @@ export function ExpensesPage() {
                 <th>Categoria</th>
                 <th>Total</th>
                 <th>Parcelas</th>
+                {isAdmin && <th aria-label="Acoes" />}
               </tr>
             </thead>
             <tbody>
@@ -115,6 +143,19 @@ export function ExpensesPage() {
                   <td>{item.categoryName}</td>
                   <td>{money(Number(item.totalAmount))}</td>
                   <td>{item.installments}x</td>
+                  {isAdmin && (
+                    <td className="actions-cell">
+                      <button
+                        className="icon-button danger"
+                        type="button"
+                        title="Excluir compra"
+                        aria-label={`Excluir ${item.description}`}
+                        onClick={() => removeExpense(item)}
+                      >
+                        <Trash2 size={17} />
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

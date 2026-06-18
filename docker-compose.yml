@@ -37,6 +37,9 @@ services:
       dockerfile: apps/web/Dockerfile
       args:
         VITE_API_URL: ${VITE_API_URL}
+        VITE_PIX_KEY: ${VITE_PIX_KEY}
+        VITE_PIX_RECEIVER_NAME: ${VITE_PIX_RECEIVER_NAME}
+        VITE_PIX_RECEIVER_CITY: ${VITE_PIX_RECEIVER_CITY}
     restart: unless-stopped
     depends_on:
       - api
