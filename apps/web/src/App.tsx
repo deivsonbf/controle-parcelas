@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { InstallAppPrompt } from './components/InstallAppPrompt';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { CardsPage } from './pages/CardsPage';
@@ -14,6 +15,7 @@ export function App() {
   return (
     <ToastProvider>
       <AuthProvider>
+        <InstallAppPrompt />
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
