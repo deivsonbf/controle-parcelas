@@ -28,7 +28,7 @@ services:
       postgres:
         condition: service_healthy
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     command: sh -c "node apps/api/dist/db/migrate.js && node apps/api/dist/db/seed.js && npm run start -w @card-manager/api"
 
   web:
@@ -44,7 +44,7 @@ services:
     depends_on:
       - api
     ports:
-      - "5173:80"
+      - "127.0.0.1:5173:80"
 
 volumes:
   postgres_data:
