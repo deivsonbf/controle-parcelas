@@ -5,6 +5,11 @@ export function money(value: number) {
   }).format(value);
 }
 
+export function formatDate(value: string) {
+  const [year, month, day] = value.slice(0, 10).split('-');
+  return year && month && day ? `${day}/${month}/${year}` : value;
+}
+
 export function formatCurrencyInput(value: string) {
   const digits = value.replace(/\D/g, '');
   return money(Number(digits || '0') / 100);

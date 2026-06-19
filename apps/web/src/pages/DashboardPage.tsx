@@ -3,7 +3,7 @@ import { Copy, KeyRound } from 'lucide-react';
 import { StatCard } from '../components/StatCard';
 import { api } from '../services/api';
 import type { MonthlyResponse, User } from '../types/api';
-import { copyText, money } from '../utils';
+import { copyText, formatDate, money } from '../utils';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { createPixPayload } from '../services/pix';
@@ -126,6 +126,7 @@ export function DashboardPage() {
               <thead>
                 <tr>
                   <th>Compra</th>
+                  <th>Data da compra</th>
                   <th>Usuario</th>
                   <th>Parcela</th>
                   <th>Cartao</th>
@@ -136,6 +137,7 @@ export function DashboardPage() {
                 {data?.items.map((item) => (
                   <tr key={`${item.expenseId}-${item.installmentNumber}`}>
                     <td>{item.description}</td>
+                    <td>{formatDate(item.purchaseDate)}</td>
                     <td>{item.userName}</td>
                     <td>{item.installmentNumber}/{item.totalInstallments}</td>
                     <td>{item.cardName} **** {item.cardLastFour}</td>

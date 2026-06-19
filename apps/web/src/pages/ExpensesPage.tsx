@@ -2,7 +2,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import { api } from '../services/api';
 import type { Card, Category, Expense, User } from '../types/api';
-import { currencyInputToNumber, formatCurrencyInput, money } from '../utils';
+import { currencyInputToNumber, formatCurrencyInput, formatDate, money } from '../utils';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 
@@ -126,6 +126,7 @@ export function ExpensesPage() {
             <thead>
               <tr>
                 <th>Descricao</th>
+                <th>Data da compra</th>
                 <th>Usuario</th>
                 <th>Cartao</th>
                 <th>Categoria</th>
@@ -138,6 +139,7 @@ export function ExpensesPage() {
               {expenses.map((item) => (
                 <tr key={item.id}>
                   <td>{item.description}</td>
+                  <td>{formatDate(item.purchaseDate)}</td>
                   <td>{item.userName}</td>
                   <td>{item.cardName}</td>
                   <td>{item.categoryName}</td>
