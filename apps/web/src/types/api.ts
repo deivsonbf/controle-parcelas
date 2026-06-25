@@ -42,3 +42,10 @@ export type MonthlyResponse = {
   total: number;
   items: MonthlyInstallment[];
 };
+
+export type MonthlySummary = {
+  month: string;
+  userId: string;
+  userName: string;
+  total: string;
+};

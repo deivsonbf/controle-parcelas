@@ -41,7 +41,7 @@ router.get('/monthly-installments', async (req, res) => {
        FROM expense_installments
        WHERE reference_month = TO_DATE($1, 'YYYY-MM')
          AND ($2::uuid IS NULL OR user_id = $2)
-       ORDER BY user_name, description, installment_number`,
+       ORDER BY purchase_date DESC, description, installment_number`,
       [targetMonth, targetUserId ?? null]
     );
 

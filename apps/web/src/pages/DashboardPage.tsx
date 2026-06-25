@@ -1,16 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Copy, KeyRound } from 'lucide-react';
+import { MonthlyInstallmentsChart } from '../components/MonthlyInstallmentsChart';
+import { SortableInstallmentsTable } from '../components/SortableInstallmentsTable';
 import { StatCard } from '../components/StatCard';
 import { api } from '../services/api';
-import type { MonthlyResponse, User } from '../types/api';
-import { copyText, formatDate, money } from '../utils';
+import type { MonthlyResponse, MonthlySummary, User } from '../types/api';
+import { copyText, money } from '../utils';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { createPixPayload } from '../services/pix';
 
 const pixKey = import.meta.env.VITE_PIX_KEY ?? '';
-const pixReceiverName = import.meta.env.VITE_PIX_RECEIVER_NAME ?? 'DEIVSON BEZERRA';
-const pixReceiverCity = import.meta.env.VITE_PIX_RECEIVER_CITY ?? 'SAO PAULO';
 
 export function DashboardPage() {
   const { user } = useAuth();
@@ -19,6 +18,8 @@ export function DashboardPage() {
   const [selectedUser, setSelectedUser] = useState('');
   const [users, setUsers] = useState<User[]>([]);
   const [data, setData] = useState<MonthlyResponse | null>(null);
+  const [monthlySummary, setMonthlySummary] = useState<MonthlySummary[]>([]);
+  const [summaryLoading, setSummaryLoading] = useState(false);
 
   useEffect(() => {
     if (user?.role === 'admin') {
@@ -38,6 +39,18 @@ export function DashboardPage() {
       });
   }, [month, selectedUser, toast]);
 
+  useEffect(() => {
+    if (user?.role !== 'user') return;
+
+    setSummaryLoading(true);
+    api<MonthlySummary[]>('/reports/summary')
+      .then(setMonthlySummary)
+      .catch((error) => {
+        toast.error('Erro ao carregar grafico', error instanceof Error ? error.message : undefined);
+      })
+      .finally(() => setSummaryLoading(false));
+  }, [toast, user?.role]);
+
   const byCategory = useMemo(() => {
     const map = new Map<string, number>();
     data?.items.forEach((item) => {
@@ -45,16 +58,6 @@ export function DashboardPage() {
     });
     return Array.from(map.entries());
   }, [data]);
-
-  const pixPayload = useMemo(() => {
-    if (!pixKey) return '';
-    return createPixPayload({
-      key: pixKey,
-      amount: data?.total ?? 0,
-      receiverName: pixReceiverName,
-      receiverCity: pixReceiverCity
-    });
-  }, [data?.total]);
 
   async function copyPix(value: string, label: string) {
     try {
@@ -88,6 +91,15 @@ export function DashboardPage() {
         <StatCard label="Categorias" value={String(byCategory.length)} tone="amber" />
       </div>
 
+      {user?.role === 'user' && (
+        <MonthlyInstallmentsChart
+          items={monthlySummary}
+          selectedMonth={month}
+          loading={summaryLoading}
+          onSelectMonth={setMonth}
+        />
+      )}
+
       {user?.role === 'user' && pixKey && (
         <div className="pix-panel">
           <div className="pix-heading">
@@ -108,45 +120,13 @@ export function DashboardPage() {
             </button>
           </div>
 
-          <div className="pix-copy-code">
-            <span>PIX copia e cola</span>
-            <code>{pixPayload}</code>
-            <button className="secondary-button" type="button" onClick={() => copyPix(pixPayload, 'Codigo PIX')}>
-              <Copy size={17} />Copiar codigo
-            </button>
-          </div>
         </div>
       )}
 
       <div className="split-grid">
         <div className="panel">
           <h2>Compras na fatura</h2>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Compra</th>
-                  <th>Data da compra</th>
-                  <th>Usuario</th>
-                  <th>Parcela</th>
-                  <th>Cartao</th>
-                  <th>Valor</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data?.items.map((item) => (
-                  <tr key={`${item.expenseId}-${item.installmentNumber}`}>
-                    <td>{item.description}</td>
-                    <td>{formatDate(item.purchaseDate)}</td>
-                    <td>{item.userName}</td>
-                    <td>{item.installmentNumber}/{item.totalInstallments}</td>
-                    <td>{item.cardName} **** {item.cardLastFour}</td>
-                    <td>{money(Number(item.installmentAmount))}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <SortableInstallmentsTable items={data?.items ?? []} />
         </div>
 
         <div className="panel">

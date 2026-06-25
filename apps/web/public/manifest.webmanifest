@@ -1,14 +1,17 @@
 {
   "name": "Cartao Parcelado",
   "short_name": "Parcelas",
+  "id": "/",
   "description": "Acompanhe compras e parcelas do cartao por mes.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "background_color": "#f5f7fb",
   "theme_color": "#111827",
   "lang": "pt-BR",
   "orientation": "portrait-primary",
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/pwa-192.png",
@@ -20,7 +23,13 @@
       "src": "/pwa-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
