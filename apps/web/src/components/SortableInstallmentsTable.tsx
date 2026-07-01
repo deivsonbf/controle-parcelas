@@ -1,6 +1,6 @@
 import { useMemo, useState, type CSSProperties } from 'react';
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
-import type { MonthlyInstallment } from '../types/api';
+import type { ExpenseType, MonthlyInstallment } from '../types/api';
 import { formatDate, money } from '../utils';
 
 type SortKey =
@@ -8,6 +8,7 @@ type SortKey =
   | 'purchaseDate'
   | 'userName'
   | 'categoryName'
+  | 'expenseType'
   | 'installmentNumber'
   | 'cardName'
   | 'installmentAmount';
@@ -29,10 +30,17 @@ const columns: Column[] = [
   { key: 'purchaseDate', label: 'Data da compra' },
   { key: 'userName', label: 'Usuario' },
   { key: 'categoryName', label: 'Categoria' },
+  { key: 'expenseType', label: 'Tipo' },
   { key: 'installmentNumber', label: 'Parcela' },
   { key: 'cardName', label: 'Cartao' },
   { key: 'installmentAmount', label: 'Valor' }
 ];
+
+const expenseTypeLabels: Record<ExpenseType, string> = {
+  fixed: 'Fixa',
+  card: 'Cartoes',
+  unplanned: 'Nao planejada'
+};
 
 function compareItems(left: MonthlyInstallment, right: MonthlyInstallment, key: SortKey) {
   switch (key) {
@@ -47,6 +55,8 @@ function compareItems(left: MonthlyInstallment, right: MonthlyInstallment, key: 
         `${right.cardName} ${right.cardLastFour}`,
         'pt-BR'
       );
+    case 'expenseType':
+      return expenseTypeLabels[left.expenseType].localeCompare(expenseTypeLabels[right.expenseType], 'pt-BR');
     default:
       return left[key].localeCompare(right[key], 'pt-BR', { sensitivity: 'base' });
   }
@@ -120,6 +130,7 @@ export function SortableInstallmentsTable({ items }: { items: MonthlyInstallment
                   {item.categoryName}
                 </span>
               </td>
+              <td><span className={`expense-type-tag ${item.expenseType}`}>{expenseTypeLabels[item.expenseType]}</span></td>
               <td>{item.installmentNumber}/{item.totalInstallments}</td>
               <td>{item.cardName} **** {item.cardLastFour}</td>
               <td>{money(Number(item.installmentAmount))}</td>

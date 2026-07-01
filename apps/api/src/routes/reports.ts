@@ -28,6 +28,7 @@ router.get('/monthly-installments', async (req, res) => {
               TO_CHAR(invoice_month, 'YYYY-MM-DD') AS "invoiceMonth",
               TO_CHAR(payment_date, 'YYYY-MM-DD') AS "paymentDate",
               description,
+              expense_type AS "expenseType",
               total_amount AS "totalAmount",
               TO_CHAR(purchase_date, 'YYYY-MM-DD') AS "purchaseDate",
               user_id AS "userId",

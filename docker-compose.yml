@@ -29,7 +29,7 @@ services:
         condition: service_healthy
     ports:
       - "3000:3000"
-    command: sh -c "node apps/api/dist/db/migrate.js && node apps/api/dist/db/seed.js && npm run start -w @card-manager/api"
+    command: sh -c "node apps/api/dist/db/migrate.js && node apps/api/dist/db/seed.js && pnpm --filter @card-manager/api start"
 
   web:
     build:

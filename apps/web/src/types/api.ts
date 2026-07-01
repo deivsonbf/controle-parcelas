@@ -1,6 +1,6 @@
-import type { AuthUser, MonthlyInstallment } from '@card-manager/shared';
+import type { AuthUser, ExpenseType, MonthlyInstallment } from '@card-manager/shared';
 
-export type { AuthUser, MonthlyInstallment };
+export type { AuthUser, ExpenseType, MonthlyInstallment };
 
 export type User = AuthUser & {
   active: boolean;
@@ -29,12 +29,28 @@ export type Expense = {
   totalAmount: string;
   installments: number;
   purchaseDate: string;
+  expenseType: ExpenseType;
   userId: string;
   userName: string;
   cardId: string;
   cardName: string;
   categoryId: string;
   categoryName: string;
+};
+
+export type FixedExpense = {
+  id: string;
+  description: string;
+  amount: string;
+  dueDay: number;
+  startsOn: string;
+  active: boolean;
+  notes?: string | null;
+  userId: string;
+  userName: string;
+  categoryId: string;
+  categoryName: string;
+  categoryColor: string;
 };
 
 export type MonthlyResponse = {

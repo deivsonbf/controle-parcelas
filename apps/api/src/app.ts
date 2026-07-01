@@ -5,6 +5,7 @@ import authRoutes from './routes/auth.js';
 import cardsRoutes from './routes/cards.js';
 import categoriesRoutes from './routes/categories.js';
 import expensesRoutes from './routes/expenses.js';
+import fixedExpensesRoutes from './routes/fixedExpenses.js';
 import reportsRoutes from './routes/reports.js';
 import usersRoutes from './routes/users.js';
 import { swaggerSpec } from './swagger.js';
@@ -27,6 +28,7 @@ export function createApp() {
   app.use('/api/cards', cardsRoutes);
   app.use('/api/categories', categoriesRoutes);
   app.use('/api/expenses', expensesRoutes);
+  app.use('/api/fixed-expenses', fixedExpensesRoutes);
   app.use('/api/reports', reportsRoutes);
 
   app.use((_req, res) => res.status(404).json({ message: 'Rota nao encontrada' }));

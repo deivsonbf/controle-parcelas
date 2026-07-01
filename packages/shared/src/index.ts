@@ -1,4 +1,5 @@
 export type UserRole = 'admin' | 'user';
+export type ExpenseType = 'fixed' | 'card' | 'unplanned';
 
 export type AuthUser = {
   id: string;
@@ -16,6 +17,7 @@ export type MonthlyInstallment = {
   invoiceMonth: string;
   paymentDate: string;
   description: string;
+  expenseType: ExpenseType;
   totalAmount: string;
   purchaseDate: string;
   userId: string;

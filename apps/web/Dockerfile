@@ -13,10 +13,10 @@ COPY tsconfig.base.json ./
 COPY apps/api/package.json apps/api/package.json
 COPY apps/web/package.json apps/web/package.json
 COPY packages/shared/package.json packages/shared/package.json
-RUN npm install
 COPY apps/web apps/web
 COPY packages/shared packages/shared
-RUN npm run build -w @card-manager/web
+RUN corepack enable && pnpm install --config.dangerouslyAllowAllBuilds=true
+RUN pnpm --filter @card-manager/web build
 
 FROM nginx:1.27-alpine
 COPY apps/web/nginx.conf /etc/nginx/conf.d/default.conf

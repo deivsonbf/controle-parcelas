@@ -14,6 +14,7 @@ export const swaggerSpec = swaggerJsdoc({
       { name: 'Cards' },
       { name: 'Categories' },
       { name: 'Expenses' },
+      { name: 'FixedExpenses' },
       { name: 'Reports' }
     ],
     components: {
@@ -101,7 +102,67 @@ export const swaggerSpec = swaggerJsdoc({
         post: {
           tags: ['Expenses'],
           summary: 'Cria compra parcelada',
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['description', 'totalAmount', 'installments', 'purchaseDate', 'expenseType', 'userId', 'cardId', 'categoryId'],
+                  properties: {
+                    description: { type: 'string', example: 'Mercado' },
+                    totalAmount: { type: 'number', example: 1832.64 },
+                    installments: { type: 'integer', example: 12 },
+                    purchaseDate: { type: 'string', format: 'date', example: '2025-07-26' },
+                    expenseType: {
+                      type: 'string',
+                      enum: ['fixed', 'card', 'unplanned'],
+                      example: 'card',
+                      description: 'Tipo da despesa: fixed=fixa, card=cartoes, unplanned=nao planejada.'
+                    },
+                    userId: { type: 'string', format: 'uuid' },
+                    cardId: { type: 'string', format: 'uuid' },
+                    categoryId: { type: 'string', format: 'uuid' },
+                    notes: { type: 'string', nullable: true }
+                  }
+                }
+              }
+            }
+          },
           responses: { '201': { description: 'Compra criada' } }
+        }
+      },
+      '/api/fixed-expenses': {
+        get: {
+          tags: ['FixedExpenses'],
+          summary: 'Lista despesas fixas; usuario comum ve somente as suas',
+          responses: { '200': { description: 'Lista de despesas fixas' } }
+        },
+        post: {
+          tags: ['FixedExpenses'],
+          summary: 'Cria despesa fixa pelo administrador',
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['description', 'amount', 'dueDay', 'startsOn', 'userId', 'categoryId'],
+                  properties: {
+                    description: { type: 'string', example: 'Internet' },
+                    amount: { type: 'number', example: 129.9 },
+                    dueDay: { type: 'integer', minimum: 1, maximum: 31, example: 10 },
+                    startsOn: { type: 'string', format: 'date', example: '2026-07-01' },
+                    active: { type: 'boolean', example: true },
+                    userId: { type: 'string', format: 'uuid' },
+                    categoryId: { type: 'string', format: 'uuid' },
+                    notes: { type: 'string', nullable: true }
+                  }
+                }
+              }
+            }
+          },
+          responses: { '201': { description: 'Despesa fixa criada' } }
         }
       },
       '/api/reports/monthly-installments': {

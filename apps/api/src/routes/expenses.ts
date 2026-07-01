@@ -12,6 +12,7 @@ const expenseSchema = z.object({
   totalAmount: z.number().positive(),
   installments: z.number().int().min(1).max(120),
   purchaseDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  expenseType: z.enum(['fixed', 'card', 'unplanned']).default('card'),
   userId: z.string().uuid(),
   cardId: z.string().uuid(),
   categoryId: z.string().uuid(),
@@ -22,7 +23,7 @@ router.get('/', async (req, res) => {
   const isAdmin = req.user?.role === 'admin';
   const result = await pool.query(
     `SELECT e.id, e.description, e.total_amount AS "totalAmount", e.installments,
-            e.purchase_date AS "purchaseDate", e.notes,
+            e.purchase_date AS "purchaseDate", e.expense_type AS "expenseType", e.notes,
             u.id AS "userId", u.name AS "userName",
             c.id AS "cardId", c.name AS "cardName",
             cat.id AS "categoryId", cat.name AS "categoryName"
@@ -42,14 +43,15 @@ router.post('/', requireRole('admin'), async (req, res) => {
     const body = expenseSchema.parse(req.body);
     const result = await pool.query(
       `INSERT INTO expenses
-       (description, total_amount, installments, purchase_date, user_id, card_id, category_id, notes, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       (description, total_amount, installments, purchase_date, expense_type, user_id, card_id, category_id, notes, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING id`,
       [
         body.description,
         body.totalAmount,
         body.installments,
         body.purchaseDate,
+        body.expenseType,
         body.userId,
         body.cardId,
         body.categoryId,
@@ -69,14 +71,15 @@ router.put('/:id', requireRole('admin'), async (req, res) => {
     const result = await pool.query(
       `UPDATE expenses
        SET description = $1, total_amount = $2, installments = $3, purchase_date = $4,
-           user_id = $5, card_id = $6, category_id = $7, notes = $8, updated_at = NOW()
-       WHERE id = $9
+           expense_type = $5, user_id = $6, card_id = $7, category_id = $8, notes = $9, updated_at = NOW()
+       WHERE id = $10
        RETURNING id`,
       [
         body.description,
         body.totalAmount,
         body.installments,
         body.purchaseDate,
+        body.expenseType,
         body.userId,
         body.cardId,
         body.categoryId,
