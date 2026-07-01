@@ -4,8 +4,8 @@ import { MonthlyInstallmentsChart } from '../components/MonthlyInstallmentsChart
 import { SortableInstallmentsTable } from '../components/SortableInstallmentsTable';
 import { StatCard } from '../components/StatCard';
 import { api } from '../services/api';
-import type { MonthlyResponse, MonthlySummary, User } from '../types/api';
-import { copyText, money } from '../utils';
+import type { DashboardSummary, MonthlyResponse, MonthlySummary, User } from '../types/api';
+import { copyText, formatDate, money } from '../utils';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 
@@ -18,6 +18,7 @@ export function DashboardPage() {
   const [selectedUser, setSelectedUser] = useState('');
   const [users, setUsers] = useState<User[]>([]);
   const [data, setData] = useState<MonthlyResponse | null>(null);
+  const [dashboard, setDashboard] = useState<DashboardSummary | null>(null);
   const [monthlySummary, setMonthlySummary] = useState<MonthlySummary[]>([]);
   const [summaryLoading, setSummaryLoading] = useState(false);
 
@@ -32,6 +33,13 @@ export function DashboardPage() {
   useEffect(() => {
     const query = new URLSearchParams({ month });
     if (selectedUser) query.set('userId', selectedUser);
+
+    api<DashboardSummary>(`/reports/dashboard?${query}`)
+      .then(setDashboard)
+      .catch((error) => {
+        toast.error('Erro ao carregar dashboard', error instanceof Error ? error.message : undefined);
+      });
+
     api<MonthlyResponse>(`/reports/monthly-installments?${query}`)
       .then(setData)
       .catch((error) => {
@@ -86,9 +94,53 @@ export function DashboardPage() {
       </div>
 
       <div className="stats-grid">
-        <StatCard label="Total do mes" value={money(data?.total ?? 0)} />
-        <StatCard label="Parcelas" value={String(data?.items.length ?? 0)} tone="green" />
-        <StatCard label="Categorias" value={String(byCategory.length)} tone="amber" />
+        <StatCard label="Total geral" value={money(dashboard?.grandTotal ?? 0)} />
+        <StatCard label="Cartoes" value={money(dashboard?.cardsTotal ?? 0)} tone="green" />
+        <StatCard label="Despesas fixas" value={money(dashboard?.fixedExpensesTotal ?? 0)} tone="amber" />
+      </div>
+
+      <div className="split-grid dashboard-summary-grid">
+        <div className="panel">
+          <div className="section-heading">
+            <div>
+              <h2>Total por cartao</h2>
+              <span>{dashboard?.cards.length ?? 0} cartoes com parcelas no mes</span>
+            </div>
+          </div>
+          <div className="summary-list">
+            {(dashboard?.cards ?? []).map((card) => (
+              <div className="summary-row" key={card.cardId}>
+                <div>
+                  <strong>{card.cardName} **** {card.cardLastFour}</strong>
+                  <span>{card.installments} parcelas</span>
+                </div>
+                <strong>{money(Number(card.total))}</strong>
+              </div>
+            ))}
+            {dashboard?.cards.length === 0 && <p className="empty-state">Nenhuma parcela de cartao neste mes.</p>}
+          </div>
+        </div>
+
+        <div className="panel">
+          <div className="section-heading">
+            <div>
+              <h2>Despesas fixas</h2>
+              <span>{dashboard?.fixedExpenses.length ?? 0} despesas ativas para o mes</span>
+            </div>
+          </div>
+          <div className="summary-list">
+            {(dashboard?.fixedExpenses ?? []).map((expense) => (
+              <div className="summary-row" key={expense.id}>
+                <div>
+                  <strong>{expense.description}</strong>
+                  <span>Dia {expense.dueDay} - {expense.categoryName} - desde {formatDate(expense.startsOn)}</span>
+                </div>
+                <strong>{money(Number(expense.amount))}</strong>
+              </div>
+            ))}
+            {dashboard?.fixedExpenses.length === 0 && <p className="empty-state">Nenhuma despesa fixa ativa neste mes.</p>}
+          </div>
+        </div>
       </div>
 
       {user?.role === 'user' && (
@@ -106,7 +158,7 @@ export function DashboardPage() {
             <div className="pix-icon"><KeyRound size={22} /></div>
             <div>
               <h2>Pagamento via PIX</h2>
-              <span>Valor deste mes: {money(data?.total ?? 0)}</span>
+              <span>Valor deste mes: {money(dashboard?.grandTotal ?? data?.total ?? 0)}</span>
             </div>
           </div>
 

@@ -59,6 +59,23 @@ export type MonthlyResponse = {
   items: MonthlyInstallment[];
 };
 
+export type DashboardCardTotal = {
+  cardId: string;
+  cardName: string;
+  cardLastFour: string;
+  total: string;
+  installments: number;
+};
+
+export type DashboardSummary = {
+  month: string;
+  cardsTotal: number;
+  fixedExpensesTotal: number;
+  grandTotal: number;
+  cards: DashboardCardTotal[];
+  fixedExpenses: FixedExpense[];
+};
+
 export type MonthlySummary = {
   month: string;
   userId: string;

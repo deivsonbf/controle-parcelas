@@ -12,6 +12,66 @@ const querySchema = z.object({
   userId: z.string().uuid().optional()
 });
 
+router.get('/dashboard', async (req, res) => {
+  try {
+    const query = querySchema.parse(req.query);
+    const isAdmin = req.user?.role === 'admin';
+    const targetUserId = isAdmin ? query.userId : req.user?.id;
+    const targetMonth = query.month ?? new Date().toISOString().slice(0, 7);
+
+    const [cardsResult, fixedExpensesResult] = await Promise.all([
+      pool.query(
+        `SELECT card_id AS "cardId",
+                card_name AS "cardName",
+                card_last_four AS "cardLastFour",
+                SUM(installment_amount)::numeric(12,2) AS total,
+                COUNT(*)::integer AS installments
+         FROM expense_installments
+         WHERE reference_month = TO_DATE($1, 'YYYY-MM')
+           AND ($2::uuid IS NULL OR user_id = $2)
+         GROUP BY card_id, card_name, card_last_four
+         ORDER BY total DESC, card_name`,
+        [targetMonth, targetUserId ?? null]
+      ),
+      pool.query(
+        `SELECT fe.id,
+                fe.description,
+                fe.amount,
+                fe.due_day AS "dueDay",
+                TO_CHAR(fe.starts_on, 'YYYY-MM-DD') AS "startsOn",
+                fe.active,
+                u.id AS "userId",
+                u.name AS "userName",
+                cat.id AS "categoryId",
+                cat.name AS "categoryName",
+                cat.color AS "categoryColor"
+         FROM fixed_expenses fe
+         JOIN users u ON u.id = fe.user_id
+         JOIN categories cat ON cat.id = fe.category_id
+         WHERE fe.active = TRUE
+           AND fe.starts_on <= (TO_DATE($1, 'YYYY-MM') + INTERVAL '1 month - 1 day')::date
+           AND ($2::uuid IS NULL OR fe.user_id = $2)
+         ORDER BY fe.due_day, fe.description`,
+        [targetMonth, targetUserId ?? null]
+      )
+    ]);
+
+    const cardsTotal = cardsResult.rows.reduce((sum, row) => sum + Number(row.total), 0);
+    const fixedExpensesTotal = fixedExpensesResult.rows.reduce((sum, row) => sum + Number(row.amount), 0);
+
+    res.json({
+      month: targetMonth,
+      cardsTotal,
+      fixedExpensesTotal,
+      grandTotal: cardsTotal + fixedExpensesTotal,
+      cards: cardsResult.rows,
+      fixedExpenses: fixedExpensesResult.rows
+    });
+  } catch (error) {
+    sendError(res, error);
+  }
+});
+
 router.get('/monthly-installments', async (req, res) => {
   try {
     const query = querySchema.parse(req.query);

@@ -491,6 +491,45 @@ th {
   border-bottom: 1px solid #e5eaf2;
 }
 
+.dashboard-summary-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.summary-list {
+  display: grid;
+  gap: 10px;
+}
+
+.summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid #e5eaf2;
+}
+
+.summary-row div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.summary-row strong {
+  color: #172033;
+}
+
+.summary-row span,
+.empty-state {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.summary-row > strong {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

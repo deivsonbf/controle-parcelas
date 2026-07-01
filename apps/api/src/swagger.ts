@@ -176,6 +176,17 @@ export const swaggerSpec = swaggerJsdoc({
           responses: { '200': { description: 'Parcelas e total do mes' } }
         }
       },
+      '/api/reports/dashboard': {
+        get: {
+          tags: ['Reports'],
+          summary: 'Resumo principal com despesas fixas e totais por cartao',
+          parameters: [
+            { name: 'month', in: 'query', schema: { type: 'string', example: '2026-07' } },
+            { name: 'userId', in: 'query', schema: { type: 'string', format: 'uuid' } }
+          ],
+          responses: { '200': { description: 'Totais do dashboard principal' } }
+        }
+      },
       '/api/reports/summary': {
         get: {
           tags: ['Reports'],
