@@ -9,7 +9,8 @@ router.use(requireAuth);
 
 const querySchema = z.object({
   month: z.string().regex(/^\d{4}-\d{2}$/).optional(),
-  userId: z.string().uuid().optional()
+  userId: z.string().uuid().optional(),
+  cardId: z.string().uuid().optional()
 });
 
 router.get('/dashboard', async (req, res) => {
@@ -18,6 +19,7 @@ router.get('/dashboard', async (req, res) => {
     const isAdmin = req.user?.role === 'admin';
     const targetUserId = isAdmin ? query.userId : req.user?.id;
     const targetMonth = query.month ?? new Date().toISOString().slice(0, 7);
+    const targetCardId = query.cardId ?? null;
 
     const [cardsResult, fixedExpensesResult, userGroupsResult] = await Promise.all([
       pool.query(
@@ -27,11 +29,14 @@ router.get('/dashboard', async (req, res) => {
                 SUM(installment_amount)::numeric(12,2) AS total,
                 COUNT(*)::integer AS installments
          FROM expense_installments
+         JOIN users u ON u.id = expense_installments.user_id
          WHERE reference_month = TO_DATE($1, 'YYYY-MM')
-           AND ($2::uuid IS NULL OR user_id = $2)
+           AND u.card_buyer_only = FALSE
+           AND ($2::uuid IS NULL OR expense_installments.user_id = $2)
+           AND ($3::uuid IS NULL OR card_id = $3)
          GROUP BY card_id, card_name, card_last_four
          ORDER BY total DESC, card_name`,
-        [targetMonth, targetUserId ?? null]
+        [targetMonth, targetUserId ?? null, targetCardId]
       ),
       pool.query(
         `SELECT fe.id,
@@ -74,6 +79,7 @@ router.get('/dashboard', async (req, res) => {
            JOIN users u ON u.id = ei.user_id
            WHERE ei.reference_month = TO_DATE($1, 'YYYY-MM')
              AND ($2::uuid IS NULL OR ei.user_id = $2)
+             AND ($3::uuid IS NULL OR ei.card_id = $3)
            GROUP BY u.card_buyer_only
          ),
          fixed_by_group AS (
@@ -97,11 +103,11 @@ router.get('/dashboard', async (req, res) => {
          LEFT JOIN cards_by_group cbg ON cbg.card_buyer_only = g.card_buyer_only
          LEFT JOIN fixed_by_group fbg ON fbg.card_buyer_only = g.card_buyer_only
          ORDER BY g.card_buyer_only`,
-        [targetMonth, targetUserId ?? null]
+        [targetMonth, targetUserId ?? null, targetCardId]
       )
     ]);
 
-    const cardsTotal = cardsResult.rows.reduce((sum, row) => sum + Number(row.total), 0);
+    const cardsTotal = userGroupsResult.rows.reduce((sum, row) => sum + Number(row.cardsTotal), 0);
     const fixedExpensesTotal = fixedExpensesResult.rows.reduce((sum, row) => sum + Number(row.amount), 0);
 
     res.json({
