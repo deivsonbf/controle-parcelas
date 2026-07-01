@@ -12,6 +12,7 @@ import { swaggerSpec } from './swagger.js';
 
 export function createApp() {
   const app = express();
+  app.set('trust proxy', 1);
   applySecurity(app);
   app.use(express.json({ limit: '100kb' }));
 
