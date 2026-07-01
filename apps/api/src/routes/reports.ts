@@ -9,7 +9,8 @@ router.use(requireAuth);
 
 const querySchema = z.object({
   month: z.string().regex(/^\d{4}-\d{2}$/).optional(),
-  userId: z.string().uuid().optional()
+  userId: z.string().uuid().optional(),
+  cardId: z.string().uuid().optional()
 });
 
 router.get('/dashboard', async (req, res) => {
@@ -18,20 +19,31 @@ router.get('/dashboard', async (req, res) => {
     const isAdmin = req.user?.role === 'admin';
     const targetUserId = isAdmin ? query.userId : req.user?.id;
     const targetMonth = query.month ?? new Date().toISOString().slice(0, 7);
+    const targetCardId = query.cardId ?? null;
 
     const [cardsResult, fixedExpensesResult, userGroupsResult] = await Promise.all([
       pool.query(
-        `SELECT card_id AS "cardId",
-                card_name AS "cardName",
-                card_last_four AS "cardLastFour",
-                SUM(installment_amount)::numeric(12,2) AS total,
-                COUNT(*)::integer AS installments
-         FROM expense_installments
-         WHERE reference_month = TO_DATE($1, 'YYYY-MM')
-           AND ($2::uuid IS NULL OR user_id = $2)
-         GROUP BY card_id, card_name, card_last_four
-         ORDER BY total DESC, card_name`,
-        [targetMonth, targetUserId ?? null]
+        `SELECT ei.card_id AS "cardId",
+                ei.card_name AS "cardName",
+                ei.card_last_four AS "cardLastFour",
+                c.owner_name AS "ownerName",
+                c.owner_user_id AS "ownerUserId",
+                owner.name AS "ownerUserName",
+                SUM(ei.installment_amount)::numeric(12,2) AS total,
+                COUNT(*)::integer AS installments,
+                SUM(CASE WHEN c.owner_user_id IS NOT NULL AND ei.user_id = c.owner_user_id THEN ei.installment_amount ELSE 0 END)::numeric(12,2) AS "ownerTotal",
+                COUNT(*) FILTER (WHERE c.owner_user_id IS NOT NULL AND ei.user_id = c.owner_user_id)::integer AS "ownerInstallments",
+                SUM(CASE WHEN c.owner_user_id IS NULL OR ei.user_id <> c.owner_user_id THEN ei.installment_amount ELSE 0 END)::numeric(12,2) AS "buyerTotal",
+                COUNT(*) FILTER (WHERE c.owner_user_id IS NULL OR ei.user_id <> c.owner_user_id)::integer AS "buyerInstallments"
+         FROM expense_installments ei
+         JOIN cards c ON c.id = ei.card_id
+         LEFT JOIN users owner ON owner.id = c.owner_user_id
+         WHERE ei.reference_month = TO_DATE($1, 'YYYY-MM')
+           AND ($2::uuid IS NULL OR ei.user_id = $2)
+           AND ($3::uuid IS NULL OR ei.card_id = $3)
+         GROUP BY ei.card_id, ei.card_name, ei.card_last_four, c.owner_name, c.owner_user_id, owner.name
+         ORDER BY total DESC, ei.card_name`,
+        [targetMonth, targetUserId ?? null, targetCardId]
       ),
       pool.query(
         `SELECT fe.id,
@@ -68,36 +80,32 @@ router.get('/dashboard', async (req, res) => {
            GROUP BY card_buyer_only
          ),
          cards_by_group AS (
-           SELECT u.card_buyer_only,
+           SELECT CASE
+                    WHEN c.owner_user_id IS NOT NULL AND ei.user_id = c.owner_user_id THEN FALSE
+                    ELSE TRUE
+                  END AS card_buyer_only,
                   SUM(ei.installment_amount)::numeric(12,2) AS total
            FROM expense_installments ei
-           JOIN users u ON u.id = ei.user_id
+           JOIN cards c ON c.id = ei.card_id
            WHERE ei.reference_month = TO_DATE($1, 'YYYY-MM')
              AND ($2::uuid IS NULL OR ei.user_id = $2)
-           GROUP BY u.card_buyer_only
-         ),
-         fixed_by_group AS (
-           SELECT u.card_buyer_only,
-                  SUM(fe.amount)::numeric(12,2) AS total
-           FROM fixed_expenses fe
-           JOIN users u ON u.id = fe.user_id
-           WHERE fe.active = TRUE
-             AND fe.starts_on <= (TO_DATE($1, 'YYYY-MM') + INTERVAL '1 month - 1 day')::date
-             AND ($2::uuid IS NULL OR fe.user_id = $2)
-           GROUP BY u.card_buyer_only
+             AND ($3::uuid IS NULL OR ei.card_id = $3)
+           GROUP BY CASE
+                      WHEN c.owner_user_id IS NOT NULL AND ei.user_id = c.owner_user_id THEN FALSE
+                      ELSE TRUE
+                    END
          )
          SELECT CASE WHEN g.card_buyer_only THEN 'buyers' ELSE 'owners' END AS key,
                 g.label,
                 COALESCE(ubg.users, 0)::integer AS users,
                 COALESCE(cbg.total, 0)::numeric(12,2) AS "cardsTotal",
-                COALESCE(fbg.total, 0)::numeric(12,2) AS "fixedExpensesTotal",
-                (COALESCE(cbg.total, 0) + COALESCE(fbg.total, 0))::numeric(12,2) AS "grandTotal"
+                0::numeric(12,2) AS "fixedExpensesTotal",
+                COALESCE(cbg.total, 0)::numeric(12,2) AS "grandTotal"
          FROM groups g
          LEFT JOIN users_by_group ubg ON ubg.card_buyer_only = g.card_buyer_only
          LEFT JOIN cards_by_group cbg ON cbg.card_buyer_only = g.card_buyer_only
-         LEFT JOIN fixed_by_group fbg ON fbg.card_buyer_only = g.card_buyer_only
          ORDER BY g.card_buyer_only`,
-        [targetMonth, targetUserId ?? null]
+        [targetMonth, targetUserId ?? null, targetCardId]
       )
     ]);
 

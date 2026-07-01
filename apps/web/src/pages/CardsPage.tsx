@@ -1,17 +1,21 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { api } from '../services/api';
-import type { Card } from '../types/api';
+import type { Card, User } from '../types/api';
 import { useToast } from '../contexts/ToastContext';
 
 export function CardsPage() {
   const toast = useToast();
   const [cards, setCards] = useState<Card[]>([]);
-  const [form, setForm] = useState({ name: '', lastFour: '', ownerName: '', closingDay: 10, dueDay: 20, active: true });
+  const [users, setUsers] = useState<User[]>([]);
+  const [form, setForm] = useState({ name: '', lastFour: '', ownerName: '', ownerUserId: '', closingDay: 10, dueDay: 20, active: true });
   const [submitting, setSubmitting] = useState(false);
 
   function load() {
     api<Card[]>('/cards').then(setCards).catch((error) => {
       toast.error('Erro ao carregar cartoes', error instanceof Error ? error.message : undefined);
+    });
+    api<User[]>('/users').then(setUsers).catch((error) => {
+      toast.error('Erro ao carregar usuarios', error instanceof Error ? error.message : undefined);
     });
   }
 
@@ -21,9 +25,9 @@ export function CardsPage() {
     event.preventDefault();
     setSubmitting(true);
     try {
-      await api('/cards', { method: 'POST', body: JSON.stringify(form) });
+      await api('/cards', { method: 'POST', body: JSON.stringify({ ...form, ownerUserId: form.ownerUserId || null }) });
       toast.success('Cartao cadastrado', `${form.name} foi adicionado.`);
-      setForm({ name: '', lastFour: '', ownerName: '', closingDay: 10, dueDay: 20, active: true });
+      setForm({ name: '', lastFour: '', ownerName: '', ownerUserId: '', closingDay: 10, dueDay: 20, active: true });
       load();
     } catch (error) {
       toast.error('Erro ao cadastrar cartao', error instanceof Error ? error.message : undefined);
@@ -39,6 +43,16 @@ export function CardsPage() {
         <input placeholder="Nome do cartao" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
         <input placeholder="Ultimos 4 digitos" maxLength={4} value={form.lastFour} onChange={(e) => setForm({ ...form, lastFour: e.target.value })} />
         <input placeholder="Titular" value={form.ownerName} onChange={(e) => setForm({ ...form, ownerName: e.target.value })} />
+        <select
+          value={form.ownerUserId}
+          onChange={(e) => {
+            const owner = users.find((item) => item.id === e.target.value);
+            setForm({ ...form, ownerUserId: e.target.value, ownerName: owner?.name ?? form.ownerName });
+          }}
+        >
+          <option value="">Dono no sistema</option>
+          {users.filter((item) => !item.cardBuyerOnly).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+        </select>
         <input type="number" min={1} max={31} value={form.closingDay} onChange={(e) => setForm({ ...form, closingDay: Number(e.target.value) })} />
         <input type="number" min={1} max={31} value={form.dueDay} onChange={(e) => setForm({ ...form, dueDay: Number(e.target.value) })} />
         <button className="primary-button" type="submit" disabled={submitting}>
@@ -47,8 +61,8 @@ export function CardsPage() {
       </form>
       <div className="panel table-wrap">
         <table>
-          <thead><tr><th>Cartao</th><th>Final</th><th>Titular</th><th>Fechamento</th><th>Vencimento</th></tr></thead>
-          <tbody>{cards.map((item) => <tr key={item.id}><td>{item.name}</td><td>**** {item.lastFour}</td><td>{item.ownerName}</td><td>Dia {item.closingDay}</td><td>Dia {item.dueDay}</td></tr>)}</tbody>
+          <thead><tr><th>Cartao</th><th>Final</th><th>Titular</th><th>Dono no sistema</th><th>Fechamento</th><th>Vencimento</th></tr></thead>
+          <tbody>{cards.map((item) => <tr key={item.id}><td>{item.name}</td><td>**** {item.lastFour}</td><td>{item.ownerName}</td><td>{item.ownerUserName ?? 'Nao vinculado'}</td><td>Dia {item.closingDay}</td><td>Dia {item.dueDay}</td></tr>)}</tbody>
         </table>
       </div>
     </section>

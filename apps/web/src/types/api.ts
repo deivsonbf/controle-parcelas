@@ -13,6 +13,8 @@ export type Card = {
   name: string;
   lastFour: string;
   ownerName: string;
+  ownerUserId?: string | null;
+  ownerUserName?: string | null;
   closingDay: number;
   dueDay: number;
   active: boolean;
@@ -64,8 +66,15 @@ export type DashboardCardTotal = {
   cardId: string;
   cardName: string;
   cardLastFour: string;
+  ownerName?: string | null;
+  ownerUserId?: string | null;
+  ownerUserName?: string | null;
   total: string;
   installments: number;
+  ownerTotal: string;
+  ownerInstallments: number;
+  buyerTotal: string;
+  buyerInstallments: number;
 };
 
 export type DashboardUserGroup = {

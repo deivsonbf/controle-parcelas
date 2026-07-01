@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Copy, KeyRound } from 'lucide-react';
 import { MonthlyInstallmentsChart } from '../components/MonthlyInstallmentsChart';
-import { SortableInstallmentsTable } from '../components/SortableInstallmentsTable';
 import { StatCard } from '../components/StatCard';
 import { api } from '../services/api';
-import type { DashboardSummary, MonthlyResponse, MonthlySummary, User } from '../types/api';
+import type { Card, DashboardSummary, MonthlySummary, User } from '../types/api';
 import { copyText, formatDate, money } from '../utils';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -16,36 +15,36 @@ export function DashboardPage() {
   const toast = useToast();
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
   const [selectedUser, setSelectedUser] = useState('');
+  const [selectedCard, setSelectedCard] = useState('');
   const [users, setUsers] = useState<User[]>([]);
-  const [data, setData] = useState<MonthlyResponse | null>(null);
+  const [cards, setCards] = useState<Card[]>([]);
   const [dashboard, setDashboard] = useState<DashboardSummary | null>(null);
   const [monthlySummary, setMonthlySummary] = useState<MonthlySummary[]>([]);
   const [summaryLoading, setSummaryLoading] = useState(false);
 
   useEffect(() => {
-    if (user?.role === 'admin') {
-      api<User[]>('/users').then(setUsers).catch((error) => {
-        toast.error('Erro ao carregar usuarios', error instanceof Error ? error.message : undefined);
-      });
-    }
+    if (user?.role !== 'admin') return;
+
+    api<User[]>('/users').then(setUsers).catch((error) => {
+      toast.error('Erro ao carregar usuarios', error instanceof Error ? error.message : undefined);
+    });
+
+    api<Card[]>('/cards').then(setCards).catch((error) => {
+      toast.error('Erro ao carregar cartoes', error instanceof Error ? error.message : undefined);
+    });
   }, [toast, user?.role]);
 
   useEffect(() => {
     const query = new URLSearchParams({ month });
     if (selectedUser) query.set('userId', selectedUser);
+    if (selectedCard) query.set('cardId', selectedCard);
 
     api<DashboardSummary>(`/reports/dashboard?${query}`)
       .then(setDashboard)
       .catch((error) => {
         toast.error('Erro ao carregar dashboard', error instanceof Error ? error.message : undefined);
       });
-
-    api<MonthlyResponse>(`/reports/monthly-installments?${query}`)
-      .then(setData)
-      .catch((error) => {
-        toast.error('Erro ao carregar resumo', error instanceof Error ? error.message : undefined);
-      });
-  }, [month, selectedUser, toast]);
+  }, [month, selectedCard, selectedUser, toast]);
 
   useEffect(() => {
     if (user?.role !== 'user') return;
@@ -58,14 +57,6 @@ export function DashboardPage() {
       })
       .finally(() => setSummaryLoading(false));
   }, [toast, user?.role]);
-
-  const byCategory = useMemo(() => {
-    const map = new Map<string, number>();
-    data?.items.forEach((item) => {
-      map.set(item.categoryName, (map.get(item.categoryName) ?? 0) + Number(item.installmentAmount));
-    });
-    return Array.from(map.entries());
-  }, [data]);
 
   async function copyPix(value: string, label: string) {
     try {
@@ -90,6 +81,16 @@ export function DashboardPage() {
               {users.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
             </select>
           )}
+          {user?.role === 'admin' && (
+            <select value={selectedCard} onChange={(event) => setSelectedCard(event.target.value)}>
+              <option value="">Todos os cartoes</option>
+              {cards.map((card) => (
+                <option key={card.id} value={card.id}>
+                  {card.name} **** {card.lastFour}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
       </div>
 
@@ -104,7 +105,7 @@ export function DashboardPage() {
           <div className="section-heading">
             <div>
               <h2>Cartao por tipo de usuario</h2>
-              <span>Somente despesas no cartao, separadas entre dono e utilizador</span>
+              <span>Somente despesas no cartao, separadas pelo dono real do cartao</span>
             </div>
           </div>
           <div className="user-type-grid">
@@ -120,12 +121,8 @@ export function DashboardPage() {
                     <dd>{money(Number(group.cardsTotal))}</dd>
                   </div>
                   <div>
-                    <dt>Fixas fora do cartao</dt>
-                    <dd>{money(Number(group.fixedExpensesTotal))}</dd>
-                  </div>
-                  <div>
-                    <dt>Total do grupo</dt>
-                    <dd>{money(Number(group.grandTotal))}</dd>
+                    <dt>Usuarios</dt>
+                    <dd>{group.users}</dd>
                   </div>
                 </dl>
               </div>
@@ -138,8 +135,8 @@ export function DashboardPage() {
         <div className="panel">
           <div className="section-heading">
             <div>
-              <h2>Total por cartao</h2>
-              <span>{dashboard?.cards.length ?? 0} cartoes com parcelas no mes</span>
+              <h2>Cartoes</h2>
+              <span>{dashboard?.cards.length ?? 0} cartoes com parcelas no mes selecionado</span>
             </div>
           </div>
           <div className="summary-list">
@@ -147,7 +144,10 @@ export function DashboardPage() {
               <div className="summary-row" key={card.cardId}>
                 <div>
                   <strong>{card.cardName} **** {card.cardLastFour}</strong>
-                  <span>{card.installments} parcelas</span>
+                  <span>Dono: {card.ownerUserName ?? card.ownerName ?? 'Nao vinculado'}</span>
+                  <span>
+                    Dono {card.ownerInstallments} parcelas: {money(Number(card.ownerTotal))} | Utilizadores {card.buyerInstallments} parcelas: {money(Number(card.buyerTotal))}
+                  </span>
                 </div>
                 <strong>{money(Number(card.total))}</strong>
               </div>
@@ -193,7 +193,7 @@ export function DashboardPage() {
             <div className="pix-icon"><KeyRound size={22} /></div>
             <div>
               <h2>Pagamento via PIX</h2>
-              <span>Valor deste mes: {money(dashboard?.grandTotal ?? data?.total ?? 0)}</span>
+              <span>Valor deste mes: {money(dashboard?.grandTotal ?? 0)}</span>
             </div>
           </div>
 
@@ -209,25 +209,6 @@ export function DashboardPage() {
 
         </div>
       )}
-
-      <div className="split-grid">
-        <div className="panel">
-          <h2>Compras na fatura</h2>
-          <SortableInstallmentsTable items={data?.items ?? []} />
-        </div>
-
-        <div className="panel">
-          <h2>Por categoria</h2>
-          <div className="category-list">
-            {byCategory.map(([category, total]) => (
-              <div key={category}>
-                <span>{category}</span>
-                <strong>{money(total)}</strong>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
     </section>
   );
 }
