@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { pool } from '../db/pool.js';
 import { requireAuth } from '../middleware/auth.js';
+import { getJointUserScope } from '../services/userScope.js';
 import { sendError } from '../utils/http.js';
 
 const router = Router();
@@ -18,6 +19,7 @@ router.get('/dashboard', async (req, res) => {
     const query = querySchema.parse(req.query);
     const isAdmin = req.user?.role === 'admin';
     const targetUserId = isAdmin ? query.userId : req.user?.id;
+    const targetUserIds = targetUserId ? await getJointUserScope(targetUserId) : null;
     const targetMonth = query.month ?? new Date().toISOString().slice(0, 7);
     const targetCardId = query.cardId ?? null;
 
@@ -39,11 +41,11 @@ router.get('/dashboard', async (req, res) => {
          JOIN cards c ON c.id = ei.card_id
          LEFT JOIN users owner ON owner.id = c.owner_user_id
          WHERE ei.reference_month = TO_DATE($1, 'YYYY-MM')
-           AND ($2::uuid IS NULL OR ei.user_id = $2)
+           AND ($2::uuid[] IS NULL OR ei.user_id = ANY($2::uuid[]))
            AND ($3::uuid IS NULL OR ei.card_id = $3)
          GROUP BY ei.card_id, ei.card_name, ei.card_last_four, c.owner_name, c.owner_user_id, owner.name
          ORDER BY total DESC, ei.card_name`,
-        [targetMonth, targetUserId ?? null, targetCardId]
+        [targetMonth, targetUserIds, targetCardId]
       ),
       pool.query(
         `SELECT fe.id,
@@ -62,9 +64,9 @@ router.get('/dashboard', async (req, res) => {
          JOIN categories cat ON cat.id = fe.category_id
          WHERE fe.active = TRUE
            AND fe.starts_on <= (TO_DATE($1, 'YYYY-MM') + INTERVAL '1 month - 1 day')::date
-           AND ($2::uuid IS NULL OR fe.user_id = $2)
+           AND ($2::uuid[] IS NULL OR fe.user_id = ANY($2::uuid[]))
          ORDER BY fe.due_day, fe.description`,
-        [targetMonth, targetUserId ?? null]
+        [targetMonth, targetUserIds]
       ),
       pool.query(
         `WITH groups AS (
@@ -76,7 +78,7 @@ router.get('/dashboard', async (req, res) => {
            SELECT card_buyer_only, COUNT(*)::integer AS users
            FROM users
            WHERE active = TRUE
-             AND ($2::uuid IS NULL OR id = $2)
+             AND ($2::uuid[] IS NULL OR id = ANY($2::uuid[]))
            GROUP BY card_buyer_only
          ),
          cards_by_group AS (
@@ -88,7 +90,7 @@ router.get('/dashboard', async (req, res) => {
            FROM expense_installments ei
            JOIN cards c ON c.id = ei.card_id
            WHERE ei.reference_month = TO_DATE($1, 'YYYY-MM')
-             AND ($2::uuid IS NULL OR ei.user_id = $2)
+             AND ($2::uuid[] IS NULL OR ei.user_id = ANY($2::uuid[]))
              AND ($3::uuid IS NULL OR ei.card_id = $3)
            GROUP BY CASE
                       WHEN c.owner_user_id IS NOT NULL AND ei.user_id = c.owner_user_id THEN FALSE
@@ -105,7 +107,7 @@ router.get('/dashboard', async (req, res) => {
          LEFT JOIN users_by_group ubg ON ubg.card_buyer_only = g.card_buyer_only
          LEFT JOIN cards_by_group cbg ON cbg.card_buyer_only = g.card_buyer_only
          ORDER BY g.card_buyer_only`,
-        [targetMonth, targetUserId ?? null, targetCardId]
+        [targetMonth, targetUserIds, targetCardId]
       )
     ]);
 
@@ -131,6 +133,7 @@ router.get('/monthly-installments', async (req, res) => {
     const query = querySchema.parse(req.query);
     const isAdmin = req.user?.role === 'admin';
     const targetUserId = isAdmin ? query.userId : req.user?.id;
+    const targetUserIds = targetUserId ? await getJointUserScope(targetUserId) : null;
     const targetMonth = query.month ?? new Date().toISOString().slice(0, 7);
 
     const result = await pool.query(
@@ -155,9 +158,9 @@ router.get('/monthly-installments', async (req, res) => {
               category_color AS "categoryColor"
        FROM expense_installments
        WHERE reference_month = TO_DATE($1, 'YYYY-MM')
-         AND ($2::uuid IS NULL OR user_id = $2)
+         AND ($2::uuid[] IS NULL OR user_id = ANY($2::uuid[]))
        ORDER BY purchase_date DESC, description, installment_number`,
-      [targetMonth, targetUserId ?? null]
+      [targetMonth, targetUserIds]
     );
 
     const total = result.rows.reduce((sum, row) => sum + Number(row.installmentAmount), 0);
@@ -169,16 +172,32 @@ router.get('/monthly-installments', async (req, res) => {
 
 router.get('/summary', async (req, res) => {
   const isAdmin = req.user?.role === 'admin';
+  const scopedUserIds = isAdmin ? null : await getJointUserScope(req.user?.id);
+
+  if (!isAdmin) {
+    const result = await pool.query(
+      `SELECT TO_CHAR(reference_month, 'YYYY-MM') AS month,
+              $2::uuid AS "userId",
+              $3::text AS "userName",
+              SUM(installment_amount)::numeric(12,2) AS total
+       FROM expense_installments
+       WHERE user_id = ANY($1::uuid[])
+       GROUP BY reference_month
+       ORDER BY month DESC`,
+      [scopedUserIds, req.user?.id, req.user?.name]
+    );
+    res.json(result.rows);
+    return;
+  }
+
   const result = await pool.query(
     `SELECT TO_CHAR(reference_month, 'YYYY-MM') AS month,
             user_id AS "userId",
             user_name AS "userName",
             SUM(installment_amount)::numeric(12,2) AS total
      FROM expense_installments
-     WHERE ($1::boolean OR user_id = $2)
      GROUP BY reference_month, user_id, user_name
-     ORDER BY month DESC, user_name`,
-    [isAdmin, req.user?.id]
+     ORDER BY month DESC, user_name`
   );
   res.json(result.rows);
 });

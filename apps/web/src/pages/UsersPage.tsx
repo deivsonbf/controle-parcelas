@@ -6,7 +6,7 @@ import { useToast } from '../contexts/ToastContext';
 export function UsersPage() {
   const toast = useToast();
   const [users, setUsers] = useState<User[]>([]);
-  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'user', active: true, cardBuyerOnly: false });
+  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'user', active: true, cardBuyerOnly: false, jointAccount: false });
   const [submitting, setSubmitting] = useState(false);
 
   function load() {
@@ -23,7 +23,7 @@ export function UsersPage() {
     try {
       await api('/users', { method: 'POST', body: JSON.stringify(form) });
       toast.success('Usuario cadastrado', `${form.name} ja pode acessar o sistema.`);
-      setForm({ name: '', email: '', password: '', role: 'user', active: true, cardBuyerOnly: false });
+      setForm({ name: '', email: '', password: '', role: 'user', active: true, cardBuyerOnly: false, jointAccount: false });
       load();
     } catch (error) {
       toast.error('Erro ao cadastrar usuario', error instanceof Error ? error.message : undefined);
@@ -41,13 +41,34 @@ export function UsersPage() {
           email: item.email,
           role: item.role,
           active: item.active,
-          cardBuyerOnly: !item.cardBuyerOnly
+          cardBuyerOnly: !item.cardBuyerOnly,
+          jointAccount: item.jointAccount
         })
       });
       toast.success('Tipo de usuario atualizado', `${item.name} foi atualizado.`);
       load();
     } catch (error) {
       toast.error('Erro ao atualizar usuario', error instanceof Error ? error.message : undefined);
+    }
+  }
+
+  async function toggleJointAccount(item: User) {
+    try {
+      await api(`/users/${item.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          name: item.name,
+          email: item.email,
+          role: item.role,
+          active: item.active,
+          cardBuyerOnly: item.cardBuyerOnly,
+          jointAccount: !item.jointAccount
+        })
+      });
+      toast.success('Conta conjunta atualizada', `${item.name} foi atualizado.`);
+      load();
+    } catch (error) {
+      toast.error('Erro ao atualizar conta conjunta', error instanceof Error ? error.message : undefined);
     }
   }
 
@@ -70,13 +91,21 @@ export function UsersPage() {
           />
           Compra no cartao, mas nao e dono
         </label>
+        <label className="checkbox-field">
+          <input
+            type="checkbox"
+            checked={form.jointAccount}
+            onChange={(e) => setForm({ ...form, jointAccount: e.target.checked })}
+          />
+          Conta conjunta
+        </label>
         <button className="primary-button" type="submit" disabled={submitting}>
           {submitting ? 'Cadastrando...' : 'Cadastrar usuario'}
         </button>
       </form>
       <div className="panel table-wrap">
         <table>
-          <thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Tipo</th><th>Status</th><th>Acoes</th></tr></thead>
+          <thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Tipo</th><th>Conta conjunta</th><th>Status</th><th>Acoes</th></tr></thead>
           <tbody>
             {users.map((item) => (
               <tr key={item.id}>
@@ -84,10 +113,14 @@ export function UsersPage() {
                 <td>{item.email}</td>
                 <td>{item.role}</td>
                 <td>{item.cardBuyerOnly ? 'Utilizador do cartao' : 'Dono do cartao'}</td>
+                <td>{item.jointAccount ? 'Sim' : 'Nao'}</td>
                 <td>{item.active ? 'Ativo' : 'Inativo'}</td>
                 <td>
                   <button className="secondary-button compact" type="button" onClick={() => toggleCardBuyerOnly(item)}>
                     {item.cardBuyerOnly ? 'Marcar dono' : 'Marcar utilizador'}
+                  </button>
+                  <button className="secondary-button compact" type="button" onClick={() => toggleJointAccount(item)}>
+                    {item.jointAccount ? 'Remover conjunta' : 'Marcar conjunta'}
                   </button>
                 </td>
               </tr>

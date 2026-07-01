@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { pool } from '../db/pool.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { sendError } from '../utils/http.js';
+import { getJointUserScope } from '../services/userScope.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -20,7 +21,7 @@ const expenseSchema = z.object({
 });
 
 router.get('/', async (req, res) => {
-  const isAdmin = req.user?.role === 'admin';
+  const scopedUserIds = req.user?.role === 'admin' ? null : await getJointUserScope(req.user?.id);
   const result = await pool.query(
     `SELECT e.id, e.description, e.total_amount AS "totalAmount", e.installments,
             e.purchase_date AS "purchaseDate", e.expense_type AS "expenseType", e.notes,
@@ -31,9 +32,9 @@ router.get('/', async (req, res) => {
      JOIN users u ON u.id = e.user_id
      JOIN cards c ON c.id = e.card_id
      JOIN categories cat ON cat.id = e.category_id
-     WHERE ($1::boolean OR e.user_id = $2)
+     WHERE ($1::uuid[] IS NULL OR e.user_id = ANY($1::uuid[]))
      ORDER BY e.purchase_date DESC, e.created_at DESC`,
-    [isAdmin, req.user?.id]
+    [scopedUserIds]
   );
   res.json(result.rows);
 });

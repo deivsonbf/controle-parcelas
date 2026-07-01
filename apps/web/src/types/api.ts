@@ -5,6 +5,7 @@ export type { AuthUser, ExpenseType, MonthlyInstallment };
 export type User = AuthUser & {
   active: boolean;
   cardBuyerOnly: boolean;
+  jointAccount: boolean;
   created_at?: string;
 };
 

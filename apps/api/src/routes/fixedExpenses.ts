@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { pool } from '../db/pool.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { sendError } from '../utils/http.js';
+import { getJointUserScope } from '../services/userScope.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -19,7 +20,7 @@ const fixedExpenseSchema = z.object({
 });
 
 router.get('/', async (req, res) => {
-  const isAdmin = req.user?.role === 'admin';
+  const scopedUserIds = req.user?.role === 'admin' ? null : await getJointUserScope(req.user?.id);
   const result = await pool.query(
     `SELECT fe.id,
             fe.description,
@@ -36,9 +37,9 @@ router.get('/', async (req, res) => {
      FROM fixed_expenses fe
      JOIN users u ON u.id = fe.user_id
      JOIN categories cat ON cat.id = fe.category_id
-     WHERE ($1::boolean OR fe.user_id = $2)
+     WHERE ($1::uuid[] IS NULL OR fe.user_id = ANY($1::uuid[]))
      ORDER BY fe.active DESC, fe.due_day, fe.description`,
-    [isAdmin, req.user?.id]
+    [scopedUserIds]
   );
   res.json(result.rows);
 });
