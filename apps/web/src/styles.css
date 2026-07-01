@@ -660,8 +660,14 @@ th {
 }
 
 .actions-cell {
-  width: 58px;
+  width: 104px;
   text-align: right;
+}
+
+.table-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 7px;
 }
 
 .pix-panel {
@@ -742,6 +748,10 @@ th {
   width: 18px;
   height: 18px;
   border-radius: 999px;
+}
+
+.category-edit-button {
+  margin-left: auto;
 }
 
 .login-screen,

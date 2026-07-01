@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState, type CSSProperties } from 'react';
-import { Trash2 } from 'lucide-react';
+import { Pencil, Trash2, X } from 'lucide-react';
 import { api } from '../services/api';
 import type { Category, FixedExpense, User } from '../types/api';
 import { currencyInputToNumber, formatCurrencyInput, formatDate, money } from '../utils';
@@ -29,6 +29,7 @@ export function FixedExpensesPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [form, setForm] = useState(emptyForm);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   function load() {
@@ -51,22 +52,31 @@ export function FixedExpensesPage() {
     event.preventDefault();
     setSubmitting(true);
     try {
-      await api('/fixed-expenses', {
-        method: 'POST',
+      await api(editingId ? `/fixed-expenses/${editingId}` : '/fixed-expenses', {
+        method: editingId ? 'PUT' : 'POST',
         body: JSON.stringify({
           ...form,
           amount: currencyInputToNumber(form.amount)
         })
       });
-      toast.success('Despesa fixa cadastrada', `${form.description} foi adicionada.`);
+      toast.success(editingId ? 'Despesa fixa atualizada' : 'Despesa fixa cadastrada', `${form.description} foi salva.`);
       setForm(emptyForm);
+      setEditingId(null);
       load();
     } catch (error) {
-      toast.error('Erro ao cadastrar despesa fixa', error instanceof Error ? error.message : undefined);
+      toast.error(`Erro ao ${editingId ? 'atualizar' : 'cadastrar'} despesa fixa`, error instanceof Error ? error.message : undefined);
     } finally {
       setSubmitting(false);
     }
   }
+
+  function editFixedExpense(item: FixedExpense) {
+    setEditingId(item.id);
+    setForm({ description: item.description, amount: formatCurrencyInput(String(Math.round(Number(item.amount) * 100))), dueDay: item.dueDay, startsOn: item.startsOn.slice(0, 10), active: item.active, userId: item.userId, categoryId: item.categoryId, notes: item.notes ?? '' });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function cancelEdit() { setEditingId(null); setForm(emptyForm); }
 
   async function removeFixedExpense(fixedExpense: FixedExpense) {
     if (!window.confirm(`Excluir a despesa fixa "${fixedExpense.description}"?`)) {
@@ -118,9 +128,11 @@ export function FixedExpensesPage() {
             <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} />
             Ativa
           </label>
+          <input placeholder="Observacoes (opcional)" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
           <button className="primary-button" type="submit" disabled={submitting}>
-            {submitting ? 'Cadastrando...' : 'Cadastrar despesa fixa'}
+            {submitting ? 'Salvando...' : editingId ? 'Salvar alteracoes' : 'Cadastrar despesa fixa'}
           </button>
+          {editingId && <button className="secondary-button" type="button" onClick={cancelEdit}><X size={17} /> Cancelar</button>}
         </form>
       )}
 
@@ -160,7 +172,8 @@ export function FixedExpensesPage() {
                   <td>{formatDate(item.startsOn)}</td>
                   <td><span className={`status-pill ${item.active ? 'active' : 'inactive'}`}>{item.active ? 'Ativa' : 'Inativa'}</span></td>
                   {isAdmin && (
-                    <td className="actions-cell">
+                    <td className="actions-cell"><div className="table-actions">
+                      <button className="icon-button" type="button" title="Editar despesa fixa" aria-label={`Editar ${item.description}`} onClick={() => editFixedExpense(item)}><Pencil size={17} /></button>
                       <button
                         className="icon-button danger"
                         type="button"
@@ -170,7 +183,7 @@ export function FixedExpensesPage() {
                       >
                         <Trash2 size={17} />
                       </button>
-                    </td>
+                    </div></td>
                   )}
                 </tr>
               ))}

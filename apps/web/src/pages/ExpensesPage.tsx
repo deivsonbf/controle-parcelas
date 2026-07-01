@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { Trash2 } from 'lucide-react';
+import { Pencil, Trash2, X } from 'lucide-react';
 import { api } from '../services/api';
 import type { Card, Category, Expense, User } from '../types/api';
 import { currencyInputToNumber, formatCurrencyInput, formatDate, money } from '../utils';
@@ -34,6 +34,7 @@ export function ExpensesPage() {
   const [cards, setCards] = useState<Card[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [form, setForm] = useState(emptyForm);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   function load() {
@@ -59,22 +60,41 @@ export function ExpensesPage() {
     event.preventDefault();
     setSubmitting(true);
     try {
-      await api('/expenses', {
-        method: 'POST',
+      await api(editingId ? `/expenses/${editingId}` : '/expenses', {
+        method: editingId ? 'PUT' : 'POST',
         body: JSON.stringify({
           ...form,
           totalAmount: currencyInputToNumber(form.totalAmount)
         })
       });
-      toast.success('Compra cadastrada', 'As parcelas ja aparecem no resumo mensal.');
+      toast.success(editingId ? 'Compra atualizada' : 'Compra cadastrada', 'As parcelas e os resumos mensais foram atualizados.');
       setForm(emptyForm);
+      setEditingId(null);
       load();
     } catch (error) {
-      toast.error('Erro ao cadastrar compra', error instanceof Error ? error.message : undefined);
+      toast.error(`Erro ao ${editingId ? 'atualizar' : 'cadastrar'} compra`, error instanceof Error ? error.message : undefined);
     } finally {
       setSubmitting(false);
     }
   }
+
+  function editExpense(expense: Expense) {
+    setEditingId(expense.id);
+    setForm({
+      description: expense.description,
+      totalAmount: formatCurrencyInput(String(Math.round(Number(expense.totalAmount) * 100))),
+      installments: expense.installments,
+      purchaseDate: expense.purchaseDate.slice(0, 10),
+      expenseType: expense.expenseType,
+      userId: expense.userId,
+      cardId: expense.cardId,
+      categoryId: expense.categoryId,
+      notes: expense.notes ?? ''
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function cancelEdit() { setEditingId(null); setForm(emptyForm); }
 
   async function removeExpense(expense: Expense) {
     if (!window.confirm(`Excluir a compra "${expense.description}"? Todas as parcelas serao removidas.`)) {
@@ -127,9 +147,11 @@ export function ExpensesPage() {
             <option value="">Categoria</option>
             {categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
           </select>
+          <input placeholder="Observacoes (opcional)" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
           <button className="primary-button" type="submit" disabled={submitting}>
-            {submitting ? 'Cadastrando...' : 'Cadastrar compra'}
+            {submitting ? 'Salvando...' : editingId ? 'Salvar alteracoes' : 'Cadastrar compra'}
           </button>
+          {editingId && <button className="secondary-button" type="button" onClick={cancelEdit}><X size={17} /> Cancelar</button>}
         </form>
       )}
 
@@ -161,7 +183,8 @@ export function ExpensesPage() {
                   <td>{money(Number(item.totalAmount))}</td>
                   <td>{item.installments}x</td>
                   {isAdmin && (
-                    <td className="actions-cell">
+                    <td className="actions-cell"><div className="table-actions">
+                      <button className="icon-button" type="button" title="Editar compra" aria-label={`Editar ${item.description}`} onClick={() => editExpense(item)}><Pencil size={17} /></button>
                       <button
                         className="icon-button danger"
                         type="button"
@@ -171,7 +194,7 @@ export function ExpensesPage() {
                       >
                         <Trash2 size={17} />
                       </button>
-                    </td>
+                    </div></td>
                   )}
                 </tr>
               ))}

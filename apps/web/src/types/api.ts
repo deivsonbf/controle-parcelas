@@ -40,6 +40,7 @@ export type Expense = {
   cardName: string;
   categoryId: string;
   categoryName: string;
+  notes?: string | null;
 };
 
 export type FixedExpense = {
