@@ -83,6 +83,11 @@ export const swaggerSpec = swaggerJsdoc({
                       type: 'boolean',
                       example: true,
                       description: 'Marca usuarios que compram no cartao, mas nao sao donos do cartao.'
+                    },
+                    jointAccount: {
+                      type: 'boolean',
+                      example: false,
+                      description: 'Quando ativo, soma despesas fixas e compras de todos os usuarios ativos marcados como conta conjunta.'
                     }
                   }
                 }
@@ -119,7 +124,7 @@ export const swaggerSpec = swaggerJsdoc({
       '/api/expenses': {
         get: {
           tags: ['Expenses'],
-          summary: 'Lista compras; usuario comum ve somente as suas',
+          summary: 'Lista compras; usuario comum ve as suas ou o escopo de conta conjunta',
           responses: { '200': { description: 'Lista de compras' } }
         },
         post: {
@@ -158,7 +163,7 @@ export const swaggerSpec = swaggerJsdoc({
       '/api/fixed-expenses': {
         get: {
           tags: ['FixedExpenses'],
-          summary: 'Lista despesas fixas; usuario comum ve somente as suas',
+          summary: 'Lista despesas fixas; usuario comum ve as suas ou o escopo de conta conjunta',
           responses: { '200': { description: 'Lista de despesas fixas' } }
         },
         post: {
@@ -205,7 +210,8 @@ export const swaggerSpec = swaggerJsdoc({
           summary: 'Resumo principal com despesas fixas e totais por cartao',
           parameters: [
             { name: 'month', in: 'query', schema: { type: 'string', example: '2026-07' } },
-            { name: 'userId', in: 'query', schema: { type: 'string', format: 'uuid' } }
+            { name: 'userId', in: 'query', schema: { type: 'string', format: 'uuid' } },
+            { name: 'cardId', in: 'query', schema: { type: 'string', format: 'uuid' } }
           ],
           responses: { '200': { description: 'Totais do dashboard principal' } }
         }
