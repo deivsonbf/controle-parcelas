@@ -4,6 +4,7 @@ export type { AuthUser, ExpenseType, MonthlyInstallment };
 
 export type User = AuthUser & {
   active: boolean;
+  cardBuyerOnly: boolean;
   created_at?: string;
 };
 
@@ -67,6 +68,15 @@ export type DashboardCardTotal = {
   installments: number;
 };
 
+export type DashboardUserGroup = {
+  key: 'owners' | 'buyers';
+  label: string;
+  users: number;
+  cardsTotal: string;
+  fixedExpensesTotal: string;
+  grandTotal: string;
+};
+
 export type DashboardSummary = {
   month: string;
   cardsTotal: number;
@@ -74,6 +84,7 @@ export type DashboardSummary = {
   grandTotal: number;
   cards: DashboardCardTotal[];
   fixedExpenses: FixedExpense[];
+  userGroups: DashboardUserGroup[];
 };
 
 export type MonthlySummary = {

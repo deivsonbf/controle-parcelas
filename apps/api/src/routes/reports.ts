@@ -19,7 +19,7 @@ router.get('/dashboard', async (req, res) => {
     const targetUserId = isAdmin ? query.userId : req.user?.id;
     const targetMonth = query.month ?? new Date().toISOString().slice(0, 7);
 
-    const [cardsResult, fixedExpensesResult] = await Promise.all([
+    const [cardsResult, fixedExpensesResult, userGroupsResult] = await Promise.all([
       pool.query(
         `SELECT card_id AS "cardId",
                 card_name AS "cardName",
@@ -53,6 +53,51 @@ router.get('/dashboard', async (req, res) => {
            AND ($2::uuid IS NULL OR fe.user_id = $2)
          ORDER BY fe.due_day, fe.description`,
         [targetMonth, targetUserId ?? null]
+      ),
+      pool.query(
+        `WITH groups AS (
+           SELECT FALSE AS card_buyer_only, 'Donos do cartao'::text AS label
+           UNION ALL
+           SELECT TRUE AS card_buyer_only, 'Utilizadores do cartao'::text AS label
+         ),
+         users_by_group AS (
+           SELECT card_buyer_only, COUNT(*)::integer AS users
+           FROM users
+           WHERE active = TRUE
+             AND ($2::uuid IS NULL OR id = $2)
+           GROUP BY card_buyer_only
+         ),
+         cards_by_group AS (
+           SELECT u.card_buyer_only,
+                  SUM(ei.installment_amount)::numeric(12,2) AS total
+           FROM expense_installments ei
+           JOIN users u ON u.id = ei.user_id
+           WHERE ei.reference_month = TO_DATE($1, 'YYYY-MM')
+             AND ($2::uuid IS NULL OR ei.user_id = $2)
+           GROUP BY u.card_buyer_only
+         ),
+         fixed_by_group AS (
+           SELECT u.card_buyer_only,
+                  SUM(fe.amount)::numeric(12,2) AS total
+           FROM fixed_expenses fe
+           JOIN users u ON u.id = fe.user_id
+           WHERE fe.active = TRUE
+             AND fe.starts_on <= (TO_DATE($1, 'YYYY-MM') + INTERVAL '1 month - 1 day')::date
+             AND ($2::uuid IS NULL OR fe.user_id = $2)
+           GROUP BY u.card_buyer_only
+         )
+         SELECT CASE WHEN g.card_buyer_only THEN 'buyers' ELSE 'owners' END AS key,
+                g.label,
+                COALESCE(ubg.users, 0)::integer AS users,
+                COALESCE(cbg.total, 0)::numeric(12,2) AS "cardsTotal",
+                COALESCE(fbg.total, 0)::numeric(12,2) AS "fixedExpensesTotal",
+                (COALESCE(cbg.total, 0) + COALESCE(fbg.total, 0))::numeric(12,2) AS "grandTotal"
+         FROM groups g
+         LEFT JOIN users_by_group ubg ON ubg.card_buyer_only = g.card_buyer_only
+         LEFT JOIN cards_by_group cbg ON cbg.card_buyer_only = g.card_buyer_only
+         LEFT JOIN fixed_by_group fbg ON fbg.card_buyer_only = g.card_buyer_only
+         ORDER BY g.card_buyer_only`,
+        [targetMonth, targetUserId ?? null]
       )
     ]);
 
@@ -65,7 +110,8 @@ router.get('/dashboard', async (req, res) => {
       fixedExpensesTotal,
       grandTotal: cardsTotal + fixedExpensesTotal,
       cards: cardsResult.rows,
-      fixedExpenses: fixedExpensesResult.rows
+      fixedExpenses: fixedExpensesResult.rows,
+      userGroups: userGroupsResult.rows
     });
   } catch (error) {
     sendError(res, error);

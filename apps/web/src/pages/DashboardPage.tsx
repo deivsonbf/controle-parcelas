@@ -99,6 +99,41 @@ export function DashboardPage() {
         <StatCard label="Despesas fixas" value={money(dashboard?.fixedExpensesTotal ?? 0)} tone="amber" />
       </div>
 
+      {user?.role === 'admin' && (
+        <div className="panel">
+          <div className="section-heading">
+            <div>
+              <h2>Por tipo de usuario</h2>
+              <span>Separacao entre donos do cartao e utilizadores do cartao</span>
+            </div>
+          </div>
+          <div className="user-type-grid">
+            {(dashboard?.userGroups ?? []).map((group) => (
+              <div className={`user-type-card ${group.key}`} key={group.key}>
+                <div>
+                  <span>{group.label}</span>
+                  <strong>{money(Number(group.grandTotal))}</strong>
+                </div>
+                <dl>
+                  <div>
+                    <dt>Cartoes</dt>
+                    <dd>{money(Number(group.cardsTotal))}</dd>
+                  </div>
+                  <div>
+                    <dt>Fixas</dt>
+                    <dd>{money(Number(group.fixedExpensesTotal))}</dd>
+                  </div>
+                  <div>
+                    <dt>Usuarios</dt>
+                    <dd>{group.users}</dd>
+                  </div>
+                </dl>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="split-grid dashboard-summary-grid">
         <div className="panel">
           <div className="section-heading">

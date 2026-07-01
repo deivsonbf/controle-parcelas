@@ -66,6 +66,29 @@ export const swaggerSpec = swaggerJsdoc({
         post: {
           tags: ['Users'],
           summary: 'Cria usuario pelo administrador',
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['name', 'email', 'password'],
+                  properties: {
+                    name: { type: 'string', example: 'Jamilly' },
+                    email: { type: 'string', example: 'jamilly@example.com' },
+                    password: { type: 'string', example: 'Senha@123' },
+                    role: { type: 'string', enum: ['admin', 'user'], example: 'user' },
+                    active: { type: 'boolean', example: true },
+                    cardBuyerOnly: {
+                      type: 'boolean',
+                      example: true,
+                      description: 'Marca usuarios que compram no cartao, mas nao sao donos do cartao.'
+                    }
+                  }
+                }
+              }
+            }
+          },
           responses: { '201': { description: 'Usuario criado' } }
         }
       },
