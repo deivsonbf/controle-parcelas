@@ -6,7 +6,7 @@ import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 const loginSchema = z.object({
-  email: z.string().email(),
+  email: z.string().trim().min(2),
   password: z.string().min(8)
 });
 
@@ -15,7 +15,7 @@ const loginSchema = z.object({
  * /auth/login:
  *   post:
  *     tags: [Auth]
- *     summary: Autentica usuario por e-mail e senha
+ *     summary: Autentica usuario por e-mail ou nome e senha
  */
 router.post('/login', async (req, res) => {
   try {

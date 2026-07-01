@@ -10,10 +10,15 @@ type UserRow = AuthUser & {
   active: boolean;
 };
 
-export async function login(email: string, password: string) {
+export async function login(identifier: string, password: string) {
+  const normalizedIdentifier = identifier.trim().toLowerCase();
   const result = await pool.query<UserRow>(
-    `SELECT id, name, email, role, password_hash, active FROM users WHERE email = $1`,
-    [email.toLowerCase()]
+    `SELECT id, name, email, role, password_hash, active
+     FROM users
+     WHERE LOWER(email) = $1 OR LOWER(name) = $1
+     ORDER BY active DESC, created_at
+     LIMIT 1`,
+    [normalizedIdentifier]
   );
   const user = result.rows[0];
 

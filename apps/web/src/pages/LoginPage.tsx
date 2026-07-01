@@ -36,8 +36,8 @@ export function LoginPage() {
         <div className="login-icon"><Lock size={28} /></div>
         <h1>Entrar</h1>
         <label>
-          E-mail
-          <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" />
+          E-mail ou usuario
+          <input value={email} onChange={(event) => setEmail(event.target.value)} type="text" autoComplete="username" />
         </label>
         <label>
           Senha
