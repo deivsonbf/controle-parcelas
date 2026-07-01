@@ -94,8 +94,8 @@ export function DashboardPage() {
       </div>
 
       <div className="stats-grid">
-        <StatCard label="Total geral" value={money(dashboard?.grandTotal ?? 0)} />
-        <StatCard label="Cartoes" value={money(dashboard?.cardsTotal ?? 0)} tone="green" />
+        <StatCard label="Somatorio geral" value={money(dashboard?.grandTotal ?? 0)} />
+        <StatCard label="Despesas no cartao" value={money(dashboard?.cardsTotal ?? 0)} tone="green" />
         <StatCard label="Despesas fixas" value={money(dashboard?.fixedExpensesTotal ?? 0)} tone="amber" />
       </div>
 
@@ -103,8 +103,8 @@ export function DashboardPage() {
         <div className="panel">
           <div className="section-heading">
             <div>
-              <h2>Por tipo de usuario</h2>
-              <span>Separacao entre donos do cartao e utilizadores do cartao</span>
+              <h2>Cartao por tipo de usuario</h2>
+              <span>Somente despesas no cartao, separadas entre dono e utilizador</span>
             </div>
           </div>
           <div className="user-type-grid">
@@ -112,20 +112,20 @@ export function DashboardPage() {
               <div className={`user-type-card ${group.key}`} key={group.key}>
                 <div>
                   <span>{group.label}</span>
-                  <strong>{money(Number(group.grandTotal))}</strong>
+                  <strong>{money(Number(group.cardsTotal))}</strong>
                 </div>
                 <dl>
                   <div>
-                    <dt>Cartoes</dt>
+                    <dt>No cartao</dt>
                     <dd>{money(Number(group.cardsTotal))}</dd>
                   </div>
                   <div>
-                    <dt>Fixas</dt>
+                    <dt>Fixas fora do cartao</dt>
                     <dd>{money(Number(group.fixedExpensesTotal))}</dd>
                   </div>
                   <div>
-                    <dt>Usuarios</dt>
-                    <dd>{group.users}</dd>
+                    <dt>Total do grupo</dt>
+                    <dd>{money(Number(group.grandTotal))}</dd>
                   </div>
                 </dl>
               </div>
