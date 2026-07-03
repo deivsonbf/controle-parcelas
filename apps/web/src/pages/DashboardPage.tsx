@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Copy, KeyRound } from 'lucide-react';
 import { MonthlyInstallmentsChart } from '../components/MonthlyInstallmentsChart';
+import { SortableInstallmentsTable } from '../components/SortableInstallmentsTable';
 import { StatCard } from '../components/StatCard';
 import { api } from '../services/api';
-import type { Card, DashboardSummary, MonthlySummary, User } from '../types/api';
+import type { Card, DashboardSummary, MonthlyResponse, MonthlySummary, User } from '../types/api';
 import { copyText, formatDate, money } from '../utils';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -20,7 +21,9 @@ export function DashboardPage() {
   const [cards, setCards] = useState<Card[]>([]);
   const [dashboard, setDashboard] = useState<DashboardSummary | null>(null);
   const [monthlySummary, setMonthlySummary] = useState<MonthlySummary[]>([]);
+  const [monthlyInstallments, setMonthlyInstallments] = useState<MonthlyResponse | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
+  const [installmentsLoading, setInstallmentsLoading] = useState(false);
 
   useEffect(() => {
     if (user?.role !== 'admin') return;
@@ -57,6 +60,24 @@ export function DashboardPage() {
       })
       .finally(() => setSummaryLoading(false));
   }, [toast, user?.role]);
+
+  useEffect(() => {
+    if (user?.role !== 'user') return;
+
+    setInstallmentsLoading(true);
+    api<MonthlyResponse>(`/reports/monthly-installments?month=${month}`)
+      .then(setMonthlyInstallments)
+      .catch((error) => {
+        toast.error('Erro ao carregar compras parceladas', error instanceof Error ? error.message : undefined);
+      })
+      .finally(() => setInstallmentsLoading(false));
+  }, [month, toast, user?.role]);
+
+  const installmentPurchases = (monthlyInstallments?.items ?? []).filter((item) => item.totalInstallments > 1);
+  const installmentPurchasesTotal = installmentPurchases.reduce(
+    (total, item) => total + Number(item.installmentAmount),
+    0
+  );
 
   async function copyPix(value: string, label: string) {
     try {
@@ -177,6 +198,26 @@ export function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {user?.role === 'user' && (
+        <div className="panel">
+          <div className="section-heading">
+            <div>
+              <h2>Compras parceladas do mes</h2>
+              <span>
+                {installmentPurchases.length} parcelas na fatura - {money(installmentPurchasesTotal)}
+              </span>
+            </div>
+          </div>
+          {installmentsLoading ? (
+            <p className="empty-state">Carregando compras parceladas...</p>
+          ) : installmentPurchases.length > 0 ? (
+            <SortableInstallmentsTable items={installmentPurchases} />
+          ) : (
+            <p className="empty-state">Nenhuma compra parcelada neste mes.</p>
+          )}
+        </div>
+      )}
 
       {user?.role === 'user' && (
         <MonthlyInstallmentsChart
