@@ -96,6 +96,7 @@ export type DashboardSummary = {
   cards: DashboardCardTotal[];
   fixedExpenses: FixedExpense[];
   userGroups: DashboardUserGroup[];
+  viewerCardBuyerOnly: boolean;
 };
 
 export type MonthlySummary = {
@@ -103,4 +104,5 @@ export type MonthlySummary = {
   userId: string;
   userName: string;
   total: string;
+  installments: number;
 };

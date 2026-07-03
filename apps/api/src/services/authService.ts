@@ -13,7 +13,7 @@ type UserRow = AuthUser & {
 export async function login(identifier: string, password: string) {
   const normalizedIdentifier = identifier.trim().toLowerCase();
   const result = await pool.query<UserRow>(
-    `SELECT id, name, email, role, password_hash, active
+    `SELECT id, name, email, role, card_buyer_only AS "cardBuyerOnly", password_hash, active
      FROM users
      WHERE LOWER(email) = $1 OR LOWER(name) = $1
      ORDER BY active DESC, created_at
@@ -30,7 +30,8 @@ export async function login(identifier: string, password: string) {
     id: user.id,
     name: user.name,
     email: user.email,
-    role: user.role
+    role: user.role,
+    cardBuyerOnly: user.cardBuyerOnly
   };
 
   const token = jwt.sign(payload, env.JWT_SECRET, {

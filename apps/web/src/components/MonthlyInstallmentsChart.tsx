@@ -35,7 +35,7 @@ export function MonthlyInstallmentsChart({
       <div className="chart-heading">
         <div>
           <h2>Parcelas por mes</h2>
-          <p>Valor total previsto em cada fatura</p>
+          <p>Valor total e quantidade de parcelas em cada fatura</p>
         </div>
         <div className="chart-heading-icon" aria-hidden="true">
           <BarChart3 size={21} />
@@ -64,12 +64,15 @@ export function MonthlyInstallmentsChart({
                   className={`chart-column${isSelected ? ' selected' : ''}`}
                   key={item.month}
                   type="button"
-                  title={`${monthLabel(item.month)}: ${money(total)}`}
-                  aria-label={`Abrir fatura de ${monthLabel(item.month)}, total ${money(total)}`}
+                  title={`${monthLabel(item.month)}: ${money(total)} em ${item.installments} parcelas`}
+                  aria-label={`Abrir fatura de ${monthLabel(item.month)}, total ${money(total)} em ${item.installments} parcelas`}
                   aria-pressed={isSelected}
                   onClick={() => onSelectMonth(item.month)}
                 >
-                  <span className="chart-value">{money(total)}</span>
+                  <span className="chart-value">
+                    {money(total)}
+                    <small>{item.installments} {item.installments === 1 ? 'parcela' : 'parcelas'}</small>
+                  </span>
                   <span
                     className="chart-bar"
                     style={{ '--bar-height': `${height}%` } as CSSProperties}

@@ -299,6 +299,10 @@ th {
   gap: 16px;
 }
 
+.stats-grid.single-stat {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .stat-card,
 .panel,
 .category-card,
@@ -417,7 +421,7 @@ th {
   height: 100%;
   min-width: 0;
   display: grid;
-  grid-template-rows: 31px minmax(0, 1fr) 34px;
+  grid-template-rows: 44px minmax(0, 1fr) 34px;
   align-items: end;
   padding: 0 5px;
   border-radius: 6px 6px 0 0;
@@ -439,6 +443,14 @@ th {
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.chart-value small {
+  display: block;
+  margin-top: 2px;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 700;
 }
 
 .chart-bar {
@@ -493,6 +505,10 @@ th {
 
 .dashboard-summary-grid {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.dashboard-summary-grid.single-panel {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .summary-list {

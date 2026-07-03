@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { pool } from '../db/pool.js';
 import { requireAuth } from '../middleware/auth.js';
-import { getJointUserScope } from '../services/userScope.js';
+import { getJointUserScope, isCardBuyerOnly } from '../services/userScope.js';
 import { sendError } from '../utils/http.js';
 
 const router = Router();
@@ -18,6 +18,7 @@ router.get('/dashboard', async (req, res) => {
   try {
     const query = querySchema.parse(req.query);
     const isAdmin = req.user?.role === 'admin';
+    const viewerCardBuyerOnly = !isAdmin && await isCardBuyerOnly(req.user?.id);
     const targetUserId = isAdmin ? query.userId : req.user?.id;
     const targetUserIds = targetUserId ? await getJointUserScope(targetUserId) : null;
     const targetMonth = query.month ?? new Date().toISOString().slice(0, 7);
@@ -112,15 +113,29 @@ router.get('/dashboard', async (req, res) => {
     ]);
 
     const cardsTotal = cardsResult.rows.reduce((sum, row) => sum + Number(row.total), 0);
-    const fixedExpensesTotal = fixedExpensesResult.rows.reduce((sum, row) => sum + Number(row.amount), 0);
+    const visibleFixedExpenses = viewerCardBuyerOnly ? [] : fixedExpensesResult.rows;
+    const fixedExpensesTotal = visibleFixedExpenses.reduce((sum, row) => sum + Number(row.amount), 0);
+    const visibleCards = viewerCardBuyerOnly
+      ? cardsResult.rows.map((card) => ({
+          ...card,
+          ownerName: null,
+          ownerUserId: null,
+          ownerUserName: null,
+          ownerTotal: '0.00',
+          ownerInstallments: 0,
+          buyerTotal: card.total,
+          buyerInstallments: card.installments
+        }))
+      : cardsResult.rows;
 
     res.json({
       month: targetMonth,
       cardsTotal,
       fixedExpensesTotal,
       grandTotal: cardsTotal + fixedExpensesTotal,
-      cards: cardsResult.rows,
-      fixedExpenses: fixedExpensesResult.rows,
+      cards: visibleCards,
+      fixedExpenses: visibleFixedExpenses,
+      viewerCardBuyerOnly,
       userGroups: userGroupsResult.rows
     });
   } catch (error) {
@@ -179,7 +194,8 @@ router.get('/summary', async (req, res) => {
       `SELECT TO_CHAR(reference_month, 'YYYY-MM') AS month,
               $2::uuid AS "userId",
               $3::text AS "userName",
-              SUM(installment_amount)::numeric(12,2) AS total
+              SUM(installment_amount)::numeric(12,2) AS total,
+              COUNT(*)::integer AS installments
        FROM expense_installments
        WHERE user_id = ANY($1::uuid[])
        GROUP BY reference_month
@@ -194,7 +210,8 @@ router.get('/summary', async (req, res) => {
     `SELECT TO_CHAR(reference_month, 'YYYY-MM') AS month,
             user_id AS "userId",
             user_name AS "userName",
-            SUM(installment_amount)::numeric(12,2) AS total
+            SUM(installment_amount)::numeric(12,2) AS total,
+            COUNT(*)::integer AS installments
      FROM expense_installments
      GROUP BY reference_month, user_id, user_name
      ORDER BY month DESC, user_name`

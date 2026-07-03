@@ -78,6 +78,7 @@ export function DashboardPage() {
     (total, item) => total + Number(item.installmentAmount),
     0
   );
+  const isBuyerOnly = dashboard?.viewerCardBuyerOnly ?? user?.cardBuyerOnly ?? false;
 
   async function copyPix(value: string, label: string) {
     try {
@@ -115,10 +116,10 @@ export function DashboardPage() {
         </div>
       </div>
 
-      <div className="stats-grid">
-        <StatCard label="Somatorio geral" value={money(dashboard?.grandTotal ?? 0)} />
-        <StatCard label="Despesas no cartao" value={money(dashboard?.cardsTotal ?? 0)} tone="green" />
-        <StatCard label="Despesas fixas" value={money(dashboard?.fixedExpensesTotal ?? 0)} tone="amber" />
+      <div className={`stats-grid${isBuyerOnly ? ' single-stat' : ''}`}>
+        {!isBuyerOnly && <StatCard label="Somatorio geral" value={money(dashboard?.grandTotal ?? 0)} />}
+        <StatCard label={isBuyerOnly ? 'Total das minhas parcelas' : 'Despesas no cartao'} value={money(dashboard?.cardsTotal ?? 0)} tone="green" />
+        {!isBuyerOnly && <StatCard label="Despesas fixas" value={money(dashboard?.fixedExpensesTotal ?? 0)} tone="amber" />}
       </div>
 
       {user?.role === 'admin' && (
@@ -152,7 +153,7 @@ export function DashboardPage() {
         </div>
       )}
 
-      <div className="split-grid dashboard-summary-grid">
+      <div className={`split-grid dashboard-summary-grid${isBuyerOnly ? ' single-panel' : ''}`}>
         <div className="panel">
           <div className="section-heading">
             <div>
@@ -165,10 +166,12 @@ export function DashboardPage() {
               <div className="summary-row" key={card.cardId}>
                 <div>
                   <strong>{card.cardName} **** {card.cardLastFour}</strong>
-                  <span>Dono: {card.ownerUserName ?? card.ownerName ?? 'Nao vinculado'}</span>
-                  <span>
-                    Dono {card.ownerInstallments} parcelas: {money(Number(card.ownerTotal))} | Utilizadores {card.buyerInstallments} parcelas: {money(Number(card.buyerTotal))}
-                  </span>
+                  {!isBuyerOnly && <span>Dono: {card.ownerUserName ?? card.ownerName ?? 'Nao vinculado'}</span>}
+                  {!isBuyerOnly && (
+                    <span>
+                      Dono {card.ownerInstallments} parcelas: {money(Number(card.ownerTotal))} | Utilizadores {card.buyerInstallments} parcelas: {money(Number(card.buyerTotal))}
+                    </span>
+                  )}
                 </div>
                 <strong>{money(Number(card.total))}</strong>
               </div>
@@ -177,47 +180,29 @@ export function DashboardPage() {
           </div>
         </div>
 
-        <div className="panel">
-          <div className="section-heading">
-            <div>
-              <h2>Despesas fixas</h2>
-              <span>{dashboard?.fixedExpenses.length ?? 0} despesas ativas para o mes</span>
-            </div>
-          </div>
-          <div className="summary-list">
-            {(dashboard?.fixedExpenses ?? []).map((expense) => (
-              <div className="summary-row" key={expense.id}>
-                <div>
-                  <strong>{expense.description}</strong>
-                  <span>Dia {expense.dueDay} - {expense.categoryName} - desde {formatDate(expense.startsOn)}</span>
-                </div>
-                <strong>{money(Number(expense.amount))}</strong>
+        {!isBuyerOnly && (
+          <div className="panel">
+            <div className="section-heading">
+              <div>
+                <h2>Despesas fixas</h2>
+                <span>{dashboard?.fixedExpenses.length ?? 0} despesas ativas para o mes</span>
               </div>
-            ))}
-            {dashboard?.fixedExpenses.length === 0 && <p className="empty-state">Nenhuma despesa fixa ativa neste mes.</p>}
-          </div>
-        </div>
-      </div>
-
-      {user?.role === 'user' && (
-        <div className="panel">
-          <div className="section-heading">
-            <div>
-              <h2>Compras parceladas do mes</h2>
-              <span>
-                {installmentPurchases.length} parcelas na fatura - {money(installmentPurchasesTotal)}
-              </span>
+            </div>
+            <div className="summary-list">
+              {(dashboard?.fixedExpenses ?? []).map((expense) => (
+                <div className="summary-row" key={expense.id}>
+                  <div>
+                    <strong>{expense.description}</strong>
+                    <span>Dia {expense.dueDay} - {expense.categoryName} - desde {formatDate(expense.startsOn)}</span>
+                  </div>
+                  <strong>{money(Number(expense.amount))}</strong>
+                </div>
+              ))}
+              {dashboard?.fixedExpenses.length === 0 && <p className="empty-state">Nenhuma despesa fixa ativa neste mes.</p>}
             </div>
           </div>
-          {installmentsLoading ? (
-            <p className="empty-state">Carregando compras parceladas...</p>
-          ) : installmentPurchases.length > 0 ? (
-            <SortableInstallmentsTable items={installmentPurchases} />
-          ) : (
-            <p className="empty-state">Nenhuma compra parcelada neste mes.</p>
-          )}
-        </div>
-      )}
+        )}
+      </div>
 
       {user?.role === 'user' && (
         <MonthlyInstallmentsChart
@@ -248,6 +233,26 @@ export function DashboardPage() {
             </button>
           </div>
 
+        </div>
+      )}
+
+      {user?.role === 'user' && (
+        <div className="panel">
+          <div className="section-heading">
+            <div>
+              <h2>Compras parceladas do mes</h2>
+              <span>
+                {installmentPurchases.length} parcelas na fatura - {money(installmentPurchasesTotal)}
+              </span>
+            </div>
+          </div>
+          {installmentsLoading ? (
+            <p className="empty-state">Carregando compras parceladas...</p>
+          ) : installmentPurchases.length > 0 ? (
+            <SortableInstallmentsTable items={installmentPurchases} />
+          ) : (
+            <p className="empty-state">Nenhuma compra parcelada neste mes.</p>
+          )}
         </div>
       )}
     </section>

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { login } from '../services/authService.js';
 import { sendError } from '../utils/http.js';
 import { requireAuth } from '../middleware/auth.js';
+import { pool } from '../db/pool.js';
 
 const router = Router();
 const loginSchema = z.object({
@@ -26,8 +27,18 @@ router.post('/login', async (req, res) => {
   }
 });
 
-router.get('/me', requireAuth, (req, res) => {
-  res.json(req.user);
+router.get('/me', requireAuth, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT id, name, email, role, card_buyer_only AS "cardBuyerOnly"
+       FROM users
+       WHERE id = $1 AND active = TRUE`,
+      [req.user?.id]
+    );
+    res.json(result.rows[0] ?? req.user);
+  } catch (error) {
+    sendError(res, error);
+  }
 });
 
 export default router;

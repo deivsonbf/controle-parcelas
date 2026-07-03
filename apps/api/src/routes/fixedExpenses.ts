@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { pool } from '../db/pool.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { sendError } from '../utils/http.js';
-import { getJointUserScope } from '../services/userScope.js';
+import { getJointUserScope, isCardBuyerOnly } from '../services/userScope.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -20,6 +20,10 @@ const fixedExpenseSchema = z.object({
 });
 
 router.get('/', async (req, res) => {
+  if (req.user?.role !== 'admin' && await isCardBuyerOnly(req.user?.id)) {
+    res.json([]);
+    return;
+  }
   const scopedUserIds = req.user?.role === 'admin' ? null : await getJointUserScope(req.user?.id);
   const result = await pool.query(
     `SELECT fe.id,
