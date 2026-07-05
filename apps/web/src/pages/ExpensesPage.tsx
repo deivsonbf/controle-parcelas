@@ -19,6 +19,7 @@ const emptyForm = {
   installments: 1,
   purchaseDate: new Date().toISOString().slice(0, 10),
   expenseType: 'card' as ExpenseType,
+  recurring: false,
   userId: '',
   cardId: '',
   categoryId: '',
@@ -86,6 +87,7 @@ export function ExpensesPage() {
       installments: expense.installments,
       purchaseDate: expense.purchaseDate.slice(0, 10),
       expenseType: expense.expenseType,
+      recurring: expense.recurring,
       userId: expense.userId,
       cardId: expense.cardId,
       categoryId: expense.categoryId,
@@ -135,6 +137,10 @@ export function ExpensesPage() {
               <option key={value} value={value}>{label}</option>
             ))}
           </select>
+          <label className="checkbox-field">
+            <input type="checkbox" checked={form.recurring} onChange={(e) => setForm({ ...form, recurring: e.target.checked })} />
+            Recorrente
+          </label>
           <select value={form.userId} onChange={(e) => setForm({ ...form, userId: e.target.value })} required>
             <option value="">Usuario</option>
             {users.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
@@ -166,6 +172,7 @@ export function ExpensesPage() {
                 <th>Cartao</th>
                 <th>Categoria</th>
                 <th>Tipo</th>
+                <th>Recorrente</th>
                 <th>Total</th>
                 <th>Parcelas</th>
                 {isAdmin && <th aria-label="Acoes" />}
@@ -180,6 +187,7 @@ export function ExpensesPage() {
                   <td>{item.cardName}</td>
                   <td>{item.categoryName}</td>
                   <td><span className={`expense-type-tag ${item.expenseType}`}>{expenseTypeLabels[item.expenseType]}</span></td>
+                  <td><span className={`status-pill ${item.recurring ? 'active' : 'inactive'}`}>{item.recurring ? 'Sim' : 'Nao'}</span></td>
                   <td>{money(Number(item.totalAmount))}</td>
                   <td>{item.installments}x</td>
                   {isAdmin && (

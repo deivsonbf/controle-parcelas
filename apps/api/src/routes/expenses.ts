@@ -14,6 +14,7 @@ const expenseSchema = z.object({
   installments: z.number().int().min(1).max(120),
   purchaseDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   expenseType: z.enum(['fixed', 'card', 'unplanned']).default('card'),
+  recurring: z.boolean().default(false),
   userId: z.string().uuid(),
   cardId: z.string().uuid(),
   categoryId: z.string().uuid(),
@@ -24,7 +25,7 @@ router.get('/', async (req, res) => {
   const scopedUserIds = req.user?.role === 'admin' ? null : await getJointUserScope(req.user?.id);
   const result = await pool.query(
     `SELECT e.id, e.description, e.total_amount AS "totalAmount", e.installments,
-            e.purchase_date AS "purchaseDate", e.expense_type AS "expenseType", e.notes,
+            e.purchase_date AS "purchaseDate", e.expense_type AS "expenseType", e.recurring, e.notes,
             u.id AS "userId", u.name AS "userName",
             c.id AS "cardId", c.name AS "cardName",
             cat.id AS "categoryId", cat.name AS "categoryName"
@@ -44,8 +45,8 @@ router.post('/', requireRole('admin'), async (req, res) => {
     const body = expenseSchema.parse(req.body);
     const result = await pool.query(
       `INSERT INTO expenses
-       (description, total_amount, installments, purchase_date, expense_type, user_id, card_id, category_id, notes, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       (description, total_amount, installments, purchase_date, expense_type, recurring, user_id, card_id, category_id, notes, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING id`,
       [
         body.description,
@@ -53,6 +54,7 @@ router.post('/', requireRole('admin'), async (req, res) => {
         body.installments,
         body.purchaseDate,
         body.expenseType,
+        body.recurring,
         body.userId,
         body.cardId,
         body.categoryId,
@@ -72,8 +74,8 @@ router.put('/:id', requireRole('admin'), async (req, res) => {
     const result = await pool.query(
       `UPDATE expenses
        SET description = $1, total_amount = $2, installments = $3, purchase_date = $4,
-           expense_type = $5, user_id = $6, card_id = $7, category_id = $8, notes = $9, updated_at = NOW()
-       WHERE id = $10
+           expense_type = $5, recurring = $6, user_id = $7, card_id = $8, category_id = $9, notes = $10, updated_at = NOW()
+       WHERE id = $11
        RETURNING id`,
       [
         body.description,
@@ -81,6 +83,7 @@ router.put('/:id', requireRole('admin'), async (req, res) => {
         body.installments,
         body.purchaseDate,
         body.expenseType,
+        body.recurring,
         body.userId,
         body.cardId,
         body.categoryId,

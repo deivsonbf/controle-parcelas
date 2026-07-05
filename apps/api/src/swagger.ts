@@ -148,6 +148,7 @@ export const swaggerSpec = swaggerJsdoc({
                       example: 'card',
                       description: 'Tipo da despesa: fixed=fixa, card=cartoes, unplanned=nao planejada.'
                     },
+                    recurring: { type: 'boolean', example: false },
                     userId: { type: 'string', format: 'uuid' },
                     cardId: { type: 'string', format: 'uuid' },
                     categoryId: { type: 'string', format: 'uuid' },

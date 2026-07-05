@@ -34,6 +34,7 @@ export type Expense = {
   installments: number;
   purchaseDate: string;
   expenseType: ExpenseType;
+  recurring: boolean;
   userId: string;
   userName: string;
   cardId: string;
