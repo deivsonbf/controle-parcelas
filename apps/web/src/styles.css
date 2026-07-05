@@ -618,6 +618,18 @@ th {
   align-items: end;
 }
 
+.compact-form {
+  grid-template-columns: minmax(180px, 1.4fr) minmax(140px, 0.8fr) minmax(150px, 0.8fr) minmax(180px, 1.2fr) max-content;
+  margin-bottom: 18px;
+}
+
+.payment-row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 .primary-button {
   min-height: 42px;
   border-radius: 8px;

@@ -24,7 +24,7 @@ router.get('/dashboard', async (req, res) => {
     const targetMonth = query.month ?? new Date().toISOString().slice(0, 7);
     const targetCardId = query.cardId ?? null;
 
-    const [cardsResult, fixedExpensesResult, userGroupsResult] = await Promise.all([
+    const [cardsResult, fixedExpensesResult, userGroupsResult, paymentsResult] = await Promise.all([
       pool.query(
         `SELECT ei.card_id AS "cardId",
                 ei.card_name AS "cardName",
@@ -109,31 +109,62 @@ router.get('/dashboard', async (req, res) => {
          LEFT JOIN cards_by_group cbg ON cbg.card_buyer_only = g.card_buyer_only
          ORDER BY g.card_buyer_only`,
         [targetMonth, targetUserIds, targetCardId]
+      ),
+      pool.query(
+        `SELECT ip.card_id AS "cardId",
+                SUM(ip.amount)::numeric(12,2) AS total
+         FROM invoice_payments ip
+         JOIN cards c ON c.id = ip.card_id
+         WHERE ip.reference_month = TO_DATE($1, 'YYYY-MM')
+           AND ($2::uuid[] IS NULL OR c.owner_user_id = ANY($2::uuid[]))
+           AND ($3::uuid IS NULL OR ip.card_id = $3)
+         GROUP BY ip.card_id`,
+        [targetMonth, targetUserIds, targetCardId]
       )
     ]);
 
     const visibleFixedExpenses = viewerCardBuyerOnly ? [] : fixedExpensesResult.rows;
     const fixedExpensesTotal = visibleFixedExpenses.reduce((sum, row) => sum + Number(row.amount), 0);
+    const paymentsByCard = new Map(paymentsResult.rows.map((row) => [row.cardId, Number(row.total)]));
     const visibleCards = viewerCardBuyerOnly
       ? cardsResult.rows.map((card) => ({
           ...card,
+          grossTotal: card.total,
+          netTotal: card.total,
+          invoicePaymentsTotal: '0.00',
           ownerName: null,
           ownerUserId: null,
           ownerUserName: null,
           ownerTotal: '0.00',
+          ownerNetTotal: '0.00',
           ownerInstallments: 0,
           buyerTotal: card.total,
           buyerInstallments: card.installments
         }))
-      : cardsResult.rows;
-    const cardsTotal = visibleCards.reduce(
+      : cardsResult.rows.map((card) => {
+          const invoicePaymentsTotal = paymentsByCard.get(card.cardId) ?? 0;
+          const ownerTotal = Number(card.ownerTotal);
+          const grossTotal = Number(card.total);
+          return {
+            ...card,
+            grossTotal: grossTotal.toFixed(2),
+            invoicePaymentsTotal: invoicePaymentsTotal.toFixed(2),
+            ownerNetTotal: (ownerTotal - invoicePaymentsTotal).toFixed(2),
+            netTotal: (grossTotal - invoicePaymentsTotal).toFixed(2)
+          };
+        });
+    const invoicePaymentsTotal = visibleCards.reduce((sum, row) => sum + Number(row.invoicePaymentsTotal ?? 0), 0);
+    const grossCardsTotal = visibleCards.reduce(
       (sum, row) => sum + Number(viewerCardBuyerOnly ? row.total : row.ownerTotal),
       0
     );
+    const cardsTotal = grossCardsTotal - invoicePaymentsTotal;
 
     res.json({
       month: targetMonth,
       cardsTotal,
+      grossCardsTotal,
+      invoicePaymentsTotal,
       fixedExpensesTotal,
       grandTotal: cardsTotal + fixedExpensesTotal,
       cards: visibleCards,

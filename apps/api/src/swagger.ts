@@ -197,6 +197,40 @@ export const swaggerSpec = swaggerJsdoc({
           responses: { '201': { description: 'Despesa fixa criada' } }
         }
       },
+      '/api/invoice-payments': {
+        get: {
+          tags: ['InvoicePayments'],
+          summary: 'Lista pagamentos/adiantamentos da fatura',
+          parameters: [
+            { name: 'month', in: 'query', schema: { type: 'string', example: '2026-07' } },
+            { name: 'cardId', in: 'query', schema: { type: 'string', format: 'uuid' } }
+          ],
+          responses: { '200': { description: 'Lista de pagamentos da fatura' } }
+        },
+        post: {
+          tags: ['InvoicePayments'],
+          summary: 'Registra pagamento/adiantamento na fatura do cartao',
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['cardId', 'month', 'amount', 'paymentDate'],
+                  properties: {
+                    cardId: { type: 'string', format: 'uuid' },
+                    month: { type: 'string', example: '2026-07' },
+                    amount: { type: 'number', example: 250 },
+                    paymentDate: { type: 'string', format: 'date', example: '2026-07-05' },
+                    notes: { type: 'string', nullable: true }
+                  }
+                }
+              }
+            }
+          },
+          responses: { '201': { description: 'Pagamento registrado' } }
+        }
+      },
       '/api/reports/monthly-installments': {
         get: {
           tags: ['Reports'],

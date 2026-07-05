@@ -44,6 +44,17 @@ export type Expense = {
   notes?: string | null;
 };
 
+export type InvoicePayment = {
+  id: string;
+  cardId: string;
+  cardName: string;
+  cardLastFour: string;
+  month: string;
+  amount: string;
+  paymentDate: string;
+  notes?: string | null;
+};
+
 export type FixedExpense = {
   id: string;
   description: string;
@@ -78,6 +89,10 @@ export type DashboardCardTotal = {
   ownerInstallments: number;
   buyerTotal: string;
   buyerInstallments: number;
+  grossTotal: string;
+  netTotal: string;
+  invoicePaymentsTotal: string;
+  ownerNetTotal: string;
 };
 
 export type DashboardUserGroup = {
@@ -92,6 +107,8 @@ export type DashboardUserGroup = {
 export type DashboardSummary = {
   month: string;
   cardsTotal: number;
+  grossCardsTotal: number;
+  invoicePaymentsTotal: number;
   fixedExpensesTotal: number;
   grandTotal: number;
   cards: DashboardCardTotal[];

@@ -1,15 +1,16 @@
-import { useEffect, useState } from 'react';
-import { Copy, KeyRound } from 'lucide-react';
+import { FormEvent, useEffect, useState } from 'react';
+import { Copy, KeyRound, Trash2 } from 'lucide-react';
 import { MonthlyInstallmentsChart } from '../components/MonthlyInstallmentsChart';
 import { SortableInstallmentsTable } from '../components/SortableInstallmentsTable';
 import { StatCard } from '../components/StatCard';
 import { api } from '../services/api';
-import type { Card, DashboardSummary, MonthlyResponse, MonthlySummary, User } from '../types/api';
-import { copyText, formatDate, money } from '../utils';
+import type { Card, DashboardSummary, InvoicePayment, MonthlyResponse, MonthlySummary, User } from '../types/api';
+import { copyText, currencyInputToNumber, formatCurrencyInput, formatDate, money } from '../utils';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 
 const pixKey = import.meta.env.VITE_PIX_KEY ?? '';
+const today = new Date().toISOString().slice(0, 10);
 
 export function DashboardPage() {
   const { user } = useAuth();
@@ -22,8 +23,11 @@ export function DashboardPage() {
   const [dashboard, setDashboard] = useState<DashboardSummary | null>(null);
   const [monthlySummary, setMonthlySummary] = useState<MonthlySummary[]>([]);
   const [monthlyInstallments, setMonthlyInstallments] = useState<MonthlyResponse | null>(null);
+  const [invoicePayments, setInvoicePayments] = useState<InvoicePayment[]>([]);
+  const [paymentForm, setPaymentForm] = useState({ cardId: '', amount: '', paymentDate: today, notes: '' });
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [installmentsLoading, setInstallmentsLoading] = useState(false);
+  const [paymentSubmitting, setPaymentSubmitting] = useState(false);
 
   useEffect(() => {
     if (user?.role !== 'admin') return;
@@ -37,17 +41,42 @@ export function DashboardPage() {
     });
   }, [toast, user?.role]);
 
-  useEffect(() => {
+  async function loadDashboard() {
     const query = new URLSearchParams({ month });
     if (selectedUser) query.set('userId', selectedUser);
     if (selectedCard) query.set('cardId', selectedCard);
 
-    api<DashboardSummary>(`/reports/dashboard?${query}`)
-      .then(setDashboard)
-      .catch((error) => {
-        toast.error('Erro ao carregar dashboard', error instanceof Error ? error.message : undefined);
-      });
+    try {
+      setDashboard(await api<DashboardSummary>(`/reports/dashboard?${query}`));
+    } catch (error) {
+      toast.error('Erro ao carregar dashboard', error instanceof Error ? error.message : undefined);
+    }
+  }
+
+  useEffect(() => {
+    loadDashboard();
   }, [month, selectedCard, selectedUser, toast]);
+
+  async function loadInvoicePayments() {
+    if (user?.role !== 'admin') return;
+    const query = new URLSearchParams({ month });
+    if (selectedCard) query.set('cardId', selectedCard);
+
+    try {
+      setInvoicePayments(await api<InvoicePayment[]>(`/invoice-payments?${query}`));
+    } catch (error) {
+      toast.error('Erro ao carregar pagamentos', error instanceof Error ? error.message : undefined);
+    }
+  }
+
+  useEffect(() => {
+    loadInvoicePayments();
+  }, [month, selectedCard, toast, user?.role]);
+
+  useEffect(() => {
+    if (!selectedCard) return;
+    setPaymentForm((current) => ({ ...current, cardId: selectedCard }));
+  }, [selectedCard]);
 
   useEffect(() => {
     if (user?.role !== 'user') return;
@@ -89,6 +118,44 @@ export function DashboardPage() {
     }
   }
 
+  async function submitPayment(event: FormEvent) {
+    event.preventDefault();
+    setPaymentSubmitting(true);
+    try {
+      await api('/invoice-payments', {
+        method: 'POST',
+        body: JSON.stringify({
+          cardId: paymentForm.cardId,
+          month,
+          amount: currencyInputToNumber(paymentForm.amount),
+          paymentDate: paymentForm.paymentDate,
+          notes: paymentForm.notes || null
+        })
+      });
+      toast.success('Pagamento registrado', 'O valor foi abatido da fatura selecionada.');
+      setPaymentForm({ cardId: selectedCard, amount: '', paymentDate: today, notes: '' });
+      await Promise.all([loadDashboard(), loadInvoicePayments()]);
+    } catch (error) {
+      toast.error('Erro ao registrar pagamento', error instanceof Error ? error.message : undefined);
+    } finally {
+      setPaymentSubmitting(false);
+    }
+  }
+
+  async function removePayment(payment: InvoicePayment) {
+    if (!window.confirm(`Excluir pagamento de ${money(Number(payment.amount))} do cartao ${payment.cardName}?`)) {
+      return;
+    }
+
+    try {
+      await api(`/invoice-payments/${payment.id}`, { method: 'DELETE' });
+      toast.success('Pagamento removido');
+      await Promise.all([loadDashboard(), loadInvoicePayments()]);
+    } catch (error) {
+      toast.error('Erro ao remover pagamento', error instanceof Error ? error.message : undefined);
+    }
+  }
+
   return (
     <section className="page">
       <div className="page-header">
@@ -118,7 +185,7 @@ export function DashboardPage() {
 
       <div className={`stats-grid${isBuyerOnly ? ' single-stat' : ''}`}>
         {!isBuyerOnly && <StatCard label="Somatorio geral" value={money(dashboard?.grandTotal ?? 0)} />}
-        <StatCard label={isBuyerOnly ? 'Total das minhas parcelas' : 'Despesas no cartao'} value={money(dashboard?.cardsTotal ?? 0)} tone="green" />
+        <StatCard label={isBuyerOnly ? 'Total das minhas parcelas' : 'Saldo no cartao'} value={money(dashboard?.cardsTotal ?? 0)} tone="green" />
         {!isBuyerOnly && <StatCard label="Despesas fixas" value={money(dashboard?.fixedExpensesTotal ?? 0)} tone="amber" />}
       </div>
 
@@ -143,6 +210,54 @@ export function DashboardPage() {
         </div>
       )}
 
+      {user?.role === 'admin' && (
+        <div className="panel">
+          <div className="section-heading">
+            <div>
+              <h2>Pagamentos da fatura</h2>
+              <span>{money(dashboard?.invoicePaymentsTotal ?? 0)} abatidos no mes selecionado</span>
+            </div>
+          </div>
+          <form className="form-grid compact-form" onSubmit={submitPayment}>
+            <select value={paymentForm.cardId} onChange={(event) => setPaymentForm({ ...paymentForm, cardId: event.target.value })} required>
+              <option value="">Cartao</option>
+              {cards.map((card) => (
+                <option key={card.id} value={card.id}>{card.name} **** {card.lastFour}</option>
+              ))}
+            </select>
+            <input
+              inputMode="numeric"
+              placeholder="Valor pago"
+              value={paymentForm.amount}
+              onChange={(event) => setPaymentForm({ ...paymentForm, amount: formatCurrencyInput(event.target.value) })}
+              required
+            />
+            <input type="date" value={paymentForm.paymentDate} onChange={(event) => setPaymentForm({ ...paymentForm, paymentDate: event.target.value })} required />
+            <input placeholder="Observacao (opcional)" value={paymentForm.notes} onChange={(event) => setPaymentForm({ ...paymentForm, notes: event.target.value })} />
+            <button className="primary-button" type="submit" disabled={paymentSubmitting}>
+              {paymentSubmitting ? 'Salvando...' : 'Registrar pagamento'}
+            </button>
+          </form>
+          <div className="summary-list">
+            {invoicePayments.map((payment) => (
+              <div className="summary-row" key={payment.id}>
+                <div>
+                  <strong>{payment.cardName} **** {payment.cardLastFour}</strong>
+                  <span>{formatDate(payment.paymentDate)}{payment.notes ? ` - ${payment.notes}` : ''}</span>
+                </div>
+                <div className="payment-row-actions">
+                  <strong>-{money(Number(payment.amount))}</strong>
+                  <button className="icon-button danger" type="button" title="Excluir pagamento" aria-label="Excluir pagamento" onClick={() => removePayment(payment)}>
+                    <Trash2 size={17} />
+                  </button>
+                </div>
+              </div>
+            ))}
+            {invoicePayments.length === 0 && <p className="empty-state">Nenhum pagamento registrado neste mes.</p>}
+          </div>
+        </div>
+      )}
+
       <div className={`split-grid dashboard-summary-grid${isBuyerOnly ? ' single-panel' : ''}`}>
         <div className="panel">
           <div className="section-heading">
@@ -162,8 +277,13 @@ export function DashboardPage() {
                       Compra no cartao {card.ownerInstallments} parcelas: {money(Number(card.ownerTotal))} | Compras de terceiros {card.buyerInstallments} parcelas: {money(Number(card.buyerTotal))}
                     </span>
                   )}
+                  {!isBuyerOnly && Number(card.invoicePaymentsTotal) > 0 && (
+                    <span>
+                      Pagamentos: -{money(Number(card.invoicePaymentsTotal))} | Saldo: {money(Number(card.ownerNetTotal))}
+                    </span>
+                  )}
                 </div>
-                <strong>{isBuyerOnly ? money(Number(card.total)) : money(Number(card.ownerTotal))}</strong>
+                <strong>{isBuyerOnly ? money(Number(card.total)) : money(Number(card.ownerNetTotal))}</strong>
               </div>
             ))}
             {dashboard?.cards.length === 0 && <p className="empty-state">Nenhuma parcela de cartao neste mes.</p>}
