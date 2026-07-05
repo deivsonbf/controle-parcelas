@@ -25,6 +25,7 @@ export function FixedExpensesPage() {
   const { user } = useAuth();
   const toast = useToast();
   const isAdmin = user?.role === 'admin';
+  const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
   const [fixedExpenses, setFixedExpenses] = useState<FixedExpense[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -33,7 +34,7 @@ export function FixedExpensesPage() {
   const [submitting, setSubmitting] = useState(false);
 
   function load() {
-    api<FixedExpense[]>('/fixed-expenses').then(setFixedExpenses).catch((error) => {
+    api<FixedExpense[]>(`/fixed-expenses?month=${month}`).then(setFixedExpenses).catch((error) => {
       toast.error('Erro ao carregar despesas fixas', error instanceof Error ? error.message : undefined);
     });
     api<Category[]>('/categories').then(setCategories).catch((error) => {
@@ -46,7 +47,7 @@ export function FixedExpensesPage() {
     }
   }
 
-  useEffect(load, [isAdmin]);
+  useEffect(load, [isAdmin, month]);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -92,15 +93,16 @@ export function FixedExpensesPage() {
     }
   }
 
-  const totalActive = fixedExpenses
-    .filter((item) => item.active)
-    .reduce((sum, item) => sum + Number(item.amount), 0);
+  const totalMonth = fixedExpenses.reduce((sum, item) => sum + Number(item.amount), 0);
 
   return (
     <section className="page">
       <div className="page-header">
         <div>
           <h1>Despesas fixas</h1>
+        </div>
+        <div className="filters">
+          <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} />
         </div>
       </div>
 
@@ -139,8 +141,8 @@ export function FixedExpensesPage() {
       <div className="panel">
         <div className="section-heading">
           <div>
-            <h2>Recorrencias cadastradas</h2>
-            <span>{money(totalActive)} em despesas ativas</span>
+            <h2>Despesas do mes</h2>
+            <span>{money(totalMonth)} em {fixedExpenses.length} despesas da competencia {month}</span>
           </div>
         </div>
         <div className="table-wrap">
@@ -190,6 +192,7 @@ export function FixedExpensesPage() {
             </tbody>
           </table>
         </div>
+        {fixedExpenses.length === 0 && <p className="empty-state">Nenhuma despesa fixa ativa neste mes.</p>}
       </div>
     </section>
   );

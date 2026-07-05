@@ -163,7 +163,10 @@ export const swaggerSpec = swaggerJsdoc({
       '/api/fixed-expenses': {
         get: {
           tags: ['FixedExpenses'],
-          summary: 'Lista despesas fixas; usuario comum ve as suas ou o escopo de conta conjunta',
+          summary: 'Lista despesas fixas; quando month e informado, retorna as despesas ativas daquela competencia',
+          parameters: [
+            { name: 'month', in: 'query', schema: { type: 'string', example: '2026-07' } }
+          ],
           responses: { '200': { description: 'Lista de despesas fixas' } }
         },
         post: {

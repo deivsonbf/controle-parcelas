@@ -19,33 +19,46 @@ const fixedExpenseSchema = z.object({
   notes: z.string().optional().nullable()
 });
 
+const querySchema = z.object({
+  month: z.string().regex(/^\d{4}-\d{2}$/).optional()
+});
+
 router.get('/', async (req, res) => {
-  if (req.user?.role !== 'admin' && await isCardBuyerOnly(req.user?.id)) {
-    res.json([]);
-    return;
+  try {
+    const query = querySchema.parse(req.query);
+    if (req.user?.role !== 'admin' && await isCardBuyerOnly(req.user?.id)) {
+      res.json([]);
+      return;
+    }
+    const scopedUserIds = req.user?.role === 'admin' ? null : await getJointUserScope(req.user?.id);
+    const result = await pool.query(
+      `SELECT fe.id,
+              fe.description,
+              fe.amount,
+              fe.due_day AS "dueDay",
+              TO_CHAR(fe.starts_on, 'YYYY-MM-DD') AS "startsOn",
+              fe.active,
+              fe.notes,
+              u.id AS "userId",
+              u.name AS "userName",
+              cat.id AS "categoryId",
+              cat.name AS "categoryName",
+              cat.color AS "categoryColor"
+       FROM fixed_expenses fe
+       JOIN users u ON u.id = fe.user_id
+       JOIN categories cat ON cat.id = fe.category_id
+       WHERE ($1::uuid[] IS NULL OR fe.user_id = ANY($1::uuid[]))
+         AND ($2::text IS NULL OR (
+           fe.active = TRUE
+           AND fe.starts_on <= (TO_DATE($2, 'YYYY-MM') + INTERVAL '1 month - 1 day')::date
+         ))
+       ORDER BY fe.active DESC, fe.due_day, fe.description`,
+      [scopedUserIds, query.month ?? null]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    sendError(res, error);
   }
-  const scopedUserIds = req.user?.role === 'admin' ? null : await getJointUserScope(req.user?.id);
-  const result = await pool.query(
-    `SELECT fe.id,
-            fe.description,
-            fe.amount,
-            fe.due_day AS "dueDay",
-            TO_CHAR(fe.starts_on, 'YYYY-MM-DD') AS "startsOn",
-            fe.active,
-            fe.notes,
-            u.id AS "userId",
-            u.name AS "userName",
-            cat.id AS "categoryId",
-            cat.name AS "categoryName",
-            cat.color AS "categoryColor"
-     FROM fixed_expenses fe
-     JOIN users u ON u.id = fe.user_id
-     JOIN categories cat ON cat.id = fe.category_id
-     WHERE ($1::uuid[] IS NULL OR fe.user_id = ANY($1::uuid[]))
-     ORDER BY fe.active DESC, fe.due_day, fe.description`,
-    [scopedUserIds]
-  );
-  res.json(result.rows);
 });
 
 router.post('/', requireRole('admin'), async (req, res) => {
