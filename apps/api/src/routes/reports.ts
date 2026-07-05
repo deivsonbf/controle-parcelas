@@ -159,6 +159,15 @@ router.get('/dashboard', async (req, res) => {
       0
     );
     const cardsTotal = grossCardsTotal - invoicePaymentsTotal;
+    const visibleUserGroups = userGroupsResult.rows.map((group) => {
+      if (group.key !== 'owners') return group;
+      const cardsTotal = Number(group.cardsTotal) - invoicePaymentsTotal;
+      return {
+        ...group,
+        cardsTotal: cardsTotal.toFixed(2),
+        grandTotal: cardsTotal.toFixed(2)
+      };
+    });
 
     res.json({
       month: targetMonth,
@@ -170,7 +179,7 @@ router.get('/dashboard', async (req, res) => {
       cards: visibleCards,
       fixedExpenses: visibleFixedExpenses,
       viewerCardBuyerOnly,
-      userGroups: userGroupsResult.rows
+      userGroups: visibleUserGroups
     });
   } catch (error) {
     sendError(res, error);
