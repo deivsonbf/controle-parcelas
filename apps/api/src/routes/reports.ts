@@ -71,9 +71,9 @@ router.get('/dashboard', async (req, res) => {
       ),
       pool.query(
         `WITH groups AS (
-           SELECT FALSE AS card_buyer_only, 'Donos do cartao'::text AS label
+           SELECT FALSE AS card_buyer_only, 'Compra no cartao'::text AS label
            UNION ALL
-           SELECT TRUE AS card_buyer_only, 'Utilizadores do cartao'::text AS label
+           SELECT TRUE AS card_buyer_only, 'Compras de terceiros'::text AS label
          ),
          users_by_group AS (
            SELECT card_buyer_only, COUNT(*)::integer AS users
@@ -112,7 +112,6 @@ router.get('/dashboard', async (req, res) => {
       )
     ]);
 
-    const cardsTotal = cardsResult.rows.reduce((sum, row) => sum + Number(row.total), 0);
     const visibleFixedExpenses = viewerCardBuyerOnly ? [] : fixedExpensesResult.rows;
     const fixedExpensesTotal = visibleFixedExpenses.reduce((sum, row) => sum + Number(row.amount), 0);
     const visibleCards = viewerCardBuyerOnly
@@ -127,6 +126,10 @@ router.get('/dashboard', async (req, res) => {
           buyerInstallments: card.installments
         }))
       : cardsResult.rows;
+    const cardsTotal = visibleCards.reduce(
+      (sum, row) => sum + Number(viewerCardBuyerOnly ? row.total : row.ownerTotal),
+      0
+    );
 
     res.json({
       month: targetMonth,

@@ -124,12 +124,6 @@ export function DashboardPage() {
 
       {user?.role === 'admin' && (
         <div className="panel">
-          <div className="section-heading">
-            <div>
-              <h2>Cartao por tipo de usuario</h2>
-              <span>Somente despesas no cartao, separadas pelo dono real do cartao</span>
-            </div>
-          </div>
           <div className="user-type-grid">
             {(dashboard?.userGroups ?? []).map((group) => (
               <div className={`user-type-card ${group.key}`} key={group.key}>
@@ -141,10 +135,6 @@ export function DashboardPage() {
                   <div>
                     <dt>No cartao</dt>
                     <dd>{money(Number(group.cardsTotal))}</dd>
-                  </div>
-                  <div>
-                    <dt>Usuarios</dt>
-                    <dd>{group.users}</dd>
                   </div>
                 </dl>
               </div>
@@ -169,11 +159,11 @@ export function DashboardPage() {
                   {!isBuyerOnly && <span>Dono: {card.ownerUserName ?? card.ownerName ?? 'Nao vinculado'}</span>}
                   {!isBuyerOnly && (
                     <span>
-                      Dono {card.ownerInstallments} parcelas: {money(Number(card.ownerTotal))} | Utilizadores {card.buyerInstallments} parcelas: {money(Number(card.buyerTotal))}
+                      Compra no cartao {card.ownerInstallments} parcelas: {money(Number(card.ownerTotal))} | Compras de terceiros {card.buyerInstallments} parcelas: {money(Number(card.buyerTotal))}
                     </span>
                   )}
                 </div>
-                <strong>{money(Number(card.total))}</strong>
+                <strong>{isBuyerOnly ? money(Number(card.total)) : money(Number(card.ownerTotal))}</strong>
               </div>
             ))}
             {dashboard?.cards.length === 0 && <p className="empty-state">Nenhuma parcela de cartao neste mes.</p>}
