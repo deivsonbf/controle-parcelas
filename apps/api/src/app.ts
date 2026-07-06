@@ -5,6 +5,7 @@ import authRoutes from './routes/auth.js';
 import cardsRoutes from './routes/cards.js';
 import categoriesRoutes from './routes/categories.js';
 import expensesRoutes from './routes/expenses.js';
+import financialControlRoutes from './routes/financialControl.js';
 import fixedExpensesRoutes from './routes/fixedExpenses.js';
 import invoicePaymentsRoutes from './routes/invoicePayments.js';
 import reportsRoutes from './routes/reports.js';
@@ -30,6 +31,7 @@ export function createApp() {
   app.use('/api/cards', cardsRoutes);
   app.use('/api/categories', categoriesRoutes);
   app.use('/api/expenses', expensesRoutes);
+  app.use('/api/financial-control', financialControlRoutes);
   app.use('/api/fixed-expenses', fixedExpensesRoutes);
   app.use('/api/invoice-payments', invoicePaymentsRoutes);
   app.use('/api/reports', reportsRoutes);

@@ -231,6 +231,70 @@ export const swaggerSpec = swaggerJsdoc({
           responses: { '201': { description: 'Pagamento registrado' } }
         }
       },
+      '/api/financial-control': {
+        get: {
+          tags: ['FinancialControl'],
+          summary: 'Resumo mensal de renda, despesas e pagamentos',
+          parameters: [
+            { name: 'month', in: 'query', schema: { type: 'string', example: '2026-07' } },
+            { name: 'userId', in: 'query', schema: { type: 'string', format: 'uuid' } }
+          ],
+          responses: { '200': { description: 'Controle financeiro do mes' } }
+        }
+      },
+      '/api/financial-control/incomes': {
+        post: {
+          tags: ['FinancialControl'],
+          summary: 'Cadastra renda mensal',
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['userId', 'month', 'description', 'amount', 'receivedDate'],
+                  properties: {
+                    userId: { type: 'string', format: 'uuid' },
+                    month: { type: 'string', example: '2026-07' },
+                    description: { type: 'string', example: 'Salario' },
+                    amount: { type: 'number', example: 5000 },
+                    receivedDate: { type: 'string', format: 'date', example: '2026-07-05' },
+                    notes: { type: 'string', nullable: true }
+                  }
+                }
+              }
+            }
+          },
+          responses: { '201': { description: 'Renda cadastrada' } }
+        }
+      },
+      '/api/financial-control/payments': {
+        post: {
+          tags: ['FinancialControl'],
+          summary: 'Marca uma despesa/fatura como paga no mes',
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['month', 'expenseKind', 'amount', 'paidDate'],
+                  properties: {
+                    month: { type: 'string', example: '2026-07' },
+                    expenseKind: { type: 'string', enum: ['fixed_expense', 'card_invoice'] },
+                    fixedExpenseId: { type: 'string', format: 'uuid', nullable: true },
+                    cardId: { type: 'string', format: 'uuid', nullable: true },
+                    amount: { type: 'number', example: 250 },
+                    paidDate: { type: 'string', format: 'date', example: '2026-07-05' },
+                    notes: { type: 'string', nullable: true }
+                  }
+                }
+              }
+            }
+          },
+          responses: { '201': { description: 'Pagamento marcado' } }
+        }
+      },
       '/api/reports/monthly-installments': {
         get: {
           tags: ['Reports'],

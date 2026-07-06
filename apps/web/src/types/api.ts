@@ -70,6 +70,51 @@ export type FixedExpense = {
   categoryColor: string;
 };
 
+export type FinancialIncome = {
+  id: string;
+  userId: string;
+  userName: string;
+  month: string;
+  description: string;
+  amount: string;
+  receivedDate: string;
+  notes?: string | null;
+};
+
+export type FinancialPayable = {
+  id?: string;
+  cardId?: string;
+  cardName?: string;
+  cardLastFour?: string;
+  ownerUserName?: string | null;
+  description?: string;
+  userName?: string;
+  categoryName?: string;
+  dueDay?: number;
+  amount: string;
+  grossTotal?: string;
+  invoicePaymentsTotal?: string;
+  paid: boolean;
+  paymentId?: string | null;
+  paidAmount: string;
+  paidDate?: string | null;
+  paymentNotes?: string | null;
+};
+
+export type FinancialControlSummary = {
+  month: string;
+  incomeTotal: number;
+  fixedExpensesTotal: number;
+  cardInvoicesTotal: number;
+  expensesTotal: number;
+  paidTotal: number;
+  unpaidTotal: number;
+  balanceAfterExpenses: number;
+  incomes: FinancialIncome[];
+  fixedExpenses: FinancialPayable[];
+  cardInvoices: FinancialPayable[];
+};
+
 export type MonthlyResponse = {
   month: string;
   total: number;
