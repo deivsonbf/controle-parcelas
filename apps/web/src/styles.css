@@ -163,6 +163,40 @@ th {
   color: #64748b;
 }
 
+.card-thumb {
+  width: 72px;
+  height: 44px;
+  display: block;
+  object-fit: cover;
+  border: 1px solid #d7deea;
+  border-radius: 6px;
+  background: #f8fafc;
+}
+
+.card-image-field {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.card-image-field input {
+  min-width: 0;
+}
+
+.card-image-field button {
+  white-space: nowrap;
+}
+
+.card-preview {
+  width: 144px;
+  height: 88px;
+  display: block;
+  object-fit: cover;
+  border: 1px solid #d7deea;
+  border-radius: 7px;
+  background: #f8fafc;
+}
+
 .checkbox-field {
   min-height: 42px;
   display: inline-flex;

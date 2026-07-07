@@ -106,6 +106,27 @@ export const swaggerSpec = swaggerJsdoc({
         post: {
           tags: ['Cards'],
           summary: 'Cria cartao',
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['name', 'lastFour', 'ownerName', 'closingDay', 'dueDay'],
+                  properties: {
+                    name: { type: 'string', example: 'Nubank' },
+                    lastFour: { type: 'string', example: '1111' },
+                    ownerName: { type: 'string', example: 'Deivson' },
+                    ownerUserId: { type: 'string', format: 'uuid', nullable: true },
+                    imageUrl: { type: 'string', format: 'uri', nullable: true },
+                    closingDay: { type: 'integer', example: 4 },
+                    dueDay: { type: 'integer', example: 13 },
+                    active: { type: 'boolean', example: true }
+                  }
+                }
+              }
+            }
+          },
           responses: { '201': { description: 'Cartao criado' } }
         }
       },

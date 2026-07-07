@@ -16,6 +16,7 @@ export type Card = {
   ownerName: string;
   ownerUserId?: string | null;
   ownerUserName?: string | null;
+  imageUrl?: string | null;
   closingDay: number;
   dueDay: number;
   active: boolean;
