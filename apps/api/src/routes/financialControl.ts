@@ -87,8 +87,10 @@ router.get('/', async (req, res) => {
                   SUM(ei.installment_amount)::numeric(12,2) AS gross_total
            FROM expense_installments ei
            JOIN cards c ON c.id = ei.card_id
+           JOIN users buyer ON buyer.id = ei.user_id
            LEFT JOIN users owner ON owner.id = c.owner_user_id
            WHERE ei.reference_month = TO_DATE($1, 'YYYY-MM')
+             AND buyer.card_buyer_only = FALSE
              AND ($2::uuid[] IS NULL OR ei.user_id = ANY($2::uuid[]) OR c.owner_user_id = ANY($2::uuid[]))
            GROUP BY ei.card_id, ei.card_name, ei.card_last_four, c.owner_user_id, owner.name
          ),
