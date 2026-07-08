@@ -550,41 +550,48 @@ th {
 
 .category-projection-chart {
   --chart-columns: 1;
-  min-width: max(100%, calc(var(--chart-columns) * 102px));
-  height: 320px;
+  min-width: max(100%, calc(var(--chart-columns) * 132px));
   display: grid;
-  grid-template-columns: repeat(var(--chart-columns), minmax(84px, 1fr));
-  align-items: end;
-  gap: 12px;
-  padding: 12px 10px 0;
-  border-bottom: 1px solid #d7deea;
+  grid-template-columns: repeat(var(--chart-columns), minmax(118px, 1fr));
+  align-items: start;
+  gap: 14px;
+  padding: 8px 8px 4px;
 }
 
 .category-month-column {
   min-width: 0;
   display: grid;
-  grid-template-rows: minmax(0, 1fr) 34px 26px;
-  gap: 4px;
-  align-items: end;
+  gap: 8px;
+  align-items: center;
+  justify-items: center;
+  padding: 10px 8px;
+  border: 1px solid #e5eaf2;
+  border-radius: 7px;
+  background: #f8fafc;
   text-align: center;
 }
 
-.category-stack {
-  width: min(54px, 76%);
-  height: 230px;
-  display: flex;
-  flex-direction: column-reverse;
-  justify-self: center;
-  overflow: hidden;
-  border: 1px solid #d7deea;
-  border-radius: 7px 7px 0 0;
-  background: #f8fafc;
+.category-pie {
+  width: 86px;
+  height: 86px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--pie-background);
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
 }
 
-.category-stack span {
-  height: var(--segment-height);
-  min-height: 5px;
-  background: var(--segment-color);
+.category-pie span {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #fff;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: 0 1px 8px rgba(15, 23, 42, 0.12);
 }
 
 .category-month-column strong {

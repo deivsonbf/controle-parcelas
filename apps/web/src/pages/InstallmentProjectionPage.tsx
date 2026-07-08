@@ -18,6 +18,21 @@ function monthLabel(value: string) {
   }).format(new Date(Date.UTC(year, month - 1, 1))).replace('.', '');
 }
 
+function categoryPieGradient(categories: InstallmentProjection['months'][number]['categories'], total: number) {
+  if (total <= 0 || categories.length === 0) return '#e2e8f0';
+
+  let current = 0;
+  const segments = categories.map((category) => {
+    const value = Number(category.total);
+    const start = current;
+    const end = current + (value / total) * 100;
+    current = end;
+    return `${category.categoryColor} ${start.toFixed(2)}% ${end.toFixed(2)}%`;
+  });
+
+  return `conic-gradient(${segments.join(', ')})`;
+}
+
 export function InstallmentProjectionPage() {
   const { user } = useAuth();
   const toast = useToast();
@@ -156,20 +171,13 @@ export function InstallmentProjectionPage() {
                   const total = Number(month.total);
                   return (
                     <div className="category-month-column" key={month.month}>
-                      <div className="category-stack" title={`${monthLabel(month.month)}: ${money(total)}`}>
-                        {month.categories.map((category) => {
-                          const percent = total > 0 ? (Number(category.total) / total) * 100 : 0;
-                          return (
-                            <span
-                              key={category.categoryId}
-                              style={{
-                                '--segment-height': `${Math.max(percent, 3)}%`,
-                                '--segment-color': category.categoryColor
-                              } as CSSProperties}
-                              title={`${category.categoryName}: ${money(Number(category.total))}`}
-                            />
-                          );
-                        })}
+                      <div
+                        className="category-pie"
+                        style={{ '--pie-background': categoryPieGradient(month.categories, total) } as CSSProperties}
+                        title={`${monthLabel(month.month)}: ${money(total)}`}
+                        aria-label={`Categorias de ${monthLabel(month.month)}, total ${money(total)}`}
+                      >
+                        <span>{month.categories.length}</span>
                       </div>
                       <strong>{money(total)}</strong>
                       <span>{monthLabel(month.month)}</span>
