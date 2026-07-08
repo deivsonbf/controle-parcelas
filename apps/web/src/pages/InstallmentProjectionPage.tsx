@@ -208,17 +208,26 @@ export function InstallmentProjectionPage() {
           <p>Veja 6 meses anteriores e 6 meses futuros em torno do mes selecionado.</p>
         </div>
         <div className="filters">
-          <input type="month" value={startMonth} onChange={(event) => setStartMonth(event.target.value)} />
+          <label className="form-field">
+            Mes de referencia
+            <input type="month" value={startMonth} onChange={(event) => setStartMonth(event.target.value)} />
+          </label>
           {user?.role === 'admin' && (
             <>
-              <select value={selectedUser} onChange={(event) => setSelectedUser(event.target.value)}>
-                <option value="">Todos os usuarios</option>
-                {users.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-              </select>
-              <select value={selectedCard} onChange={(event) => setSelectedCard(event.target.value)}>
-                <option value="">Todos os cartoes</option>
-                {cards.map((item) => <option key={item.id} value={item.id}>{item.name} **** {item.lastFour}</option>)}
-              </select>
+              <label className="form-field">
+                Usuario
+                <select value={selectedUser} onChange={(event) => setSelectedUser(event.target.value)}>
+                  <option value="">Todos os usuarios</option>
+                  {users.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                </select>
+              </label>
+              <label className="form-field">
+                Cartao
+                <select value={selectedCard} onChange={(event) => setSelectedCard(event.target.value)}>
+                  <option value="">Todos os cartoes</option>
+                  {cards.map((item) => <option key={item.id} value={item.id}>{item.name} **** {item.lastFour}</option>)}
+                </select>
+              </label>
             </>
           )}
         </div>

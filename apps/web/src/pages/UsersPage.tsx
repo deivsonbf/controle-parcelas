@@ -111,13 +111,25 @@ export function UsersPage() {
         </div>
       </div>
       <form className="panel form-grid" onSubmit={submit}>
-        <input placeholder="Nome" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-        <input placeholder="E-mail" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-        <input placeholder={editingId ? 'Nova senha (opcional)' : 'Senha inicial'} type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required={!editingId} />
-        <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
-          <option value="user">Utilizador</option>
-          <option value="admin">Administrador</option>
-        </select>
+        <label className="form-field">
+          Nome
+          <input placeholder="Nome completo" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+        </label>
+        <label className="form-field">
+          E-mail
+          <input placeholder="email@dominio.com" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+        </label>
+        <label className="form-field">
+          Senha
+          <input placeholder={editingId ? 'Nova senha (opcional)' : 'Senha inicial'} type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required={!editingId} />
+        </label>
+        <label className="form-field">
+          Perfil
+          <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
+            <option value="user">Utilizador</option>
+            <option value="admin">Administrador</option>
+          </select>
+        </label>
         <label className="checkbox-field">
           <input
             type="checkbox"

@@ -884,6 +884,24 @@ tbody tr:hover {
   align-items: end;
 }
 
+.form-field {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.form-field input,
+.form-field select {
+  margin: 0;
+}
+
+.filters .form-field {
+  flex: 1 1 0;
+}
+
 .compact-form {
   grid-template-columns: minmax(180px, 1.4fr) minmax(140px, 0.8fr) minmax(150px, 0.8fr) minmax(180px, 1.2fr) max-content;
   margin-bottom: 18px;

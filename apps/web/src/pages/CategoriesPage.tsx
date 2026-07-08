@@ -49,8 +49,14 @@ export function CategoriesPage() {
         </div>
       </div>
       <form className="panel form-grid" onSubmit={submit}>
-        <input placeholder="Nome" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-        <input type="color" value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} />
+        <label className="form-field">
+          Nome da categoria
+          <input placeholder="Ex.: Mercado" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+        </label>
+        <label className="form-field">
+          Cor
+          <input type="color" value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} />
+        </label>
         <button className="primary-button" type="submit" disabled={submitting}>
           {submitting ? 'Salvando...' : editingId ? 'Salvar alteracoes' : 'Cadastrar categoria'}
         </button>

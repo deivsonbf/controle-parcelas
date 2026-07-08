@@ -104,30 +104,51 @@ export function FixedExpensesPage() {
           <p>Controle despesas recorrentes e lancamentos de uma unica competencia.</p>
         </div>
         <div className="filters">
-          <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} />
+          <label className="form-field">
+            Competencia
+            <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} />
+          </label>
         </div>
       </div>
 
       {isAdmin && (
         <form className="panel form-grid" onSubmit={submit}>
-          <input placeholder="Descricao" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} required />
-          <input
-            inputMode="numeric"
-            placeholder="Valor mensal"
-            value={form.amount}
-            onChange={(e) => setForm({ ...form, amount: formatCurrencyInput(e.target.value) })}
-            required
-          />
-          <input type="number" min={1} max={31} placeholder="Dia de vencimento" value={form.dueDay} onChange={(e) => setForm({ ...form, dueDay: Number(e.target.value) })} required />
-          <input type="date" value={form.startsOn} onChange={(e) => setForm({ ...form, startsOn: e.target.value })} required />
-          <select value={form.userId} onChange={(e) => setForm({ ...form, userId: e.target.value })} required>
-            <option value="">Usuario</option>
-            {users.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-          </select>
-          <select value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: e.target.value })} required>
-            <option value="">Categoria</option>
-            {categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-          </select>
+          <label className="form-field">
+            Descricao
+            <input placeholder="Ex.: Internet, aluguel" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} required />
+          </label>
+          <label className="form-field">
+            Valor mensal
+            <input
+              inputMode="numeric"
+              placeholder="R$ 0,00"
+              value={form.amount}
+              onChange={(e) => setForm({ ...form, amount: formatCurrencyInput(e.target.value) })}
+              required
+            />
+          </label>
+          <label className="form-field">
+            Dia de vencimento
+            <input type="number" min={1} max={31} placeholder="1" value={form.dueDay} onChange={(e) => setForm({ ...form, dueDay: Number(e.target.value) })} required />
+          </label>
+          <label className="form-field">
+            Inicio
+            <input type="date" value={form.startsOn} onChange={(e) => setForm({ ...form, startsOn: e.target.value })} required />
+          </label>
+          <label className="form-field">
+            Usuario
+            <select value={form.userId} onChange={(e) => setForm({ ...form, userId: e.target.value })} required>
+              <option value="">Selecione</option>
+              {users.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+            </select>
+          </label>
+          <label className="form-field">
+            Categoria
+            <select value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: e.target.value })} required>
+              <option value="">Selecione</option>
+              {categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+            </select>
+          </label>
           <label className="checkbox-field">
             <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} />
             Ativa
@@ -136,7 +157,10 @@ export function FixedExpensesPage() {
             <input type="checkbox" checked={form.recurring} onChange={(e) => setForm({ ...form, recurring: e.target.checked })} />
             Recorrente
           </label>
-          <input placeholder="Observacoes (opcional)" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+          <label className="form-field">
+            Observacoes
+            <input placeholder="Opcional" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+          </label>
           <button className="primary-button" type="submit" disabled={submitting}>
             {submitting ? 'Salvando...' : editingId ? 'Salvar alteracoes' : 'Cadastrar despesa mensal'}
           </button>

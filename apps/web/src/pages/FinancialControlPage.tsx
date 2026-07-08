@@ -160,11 +160,17 @@ export function FinancialControlPage() {
           <p>Registre rendas, acompanhe pagamentos e veja o saldo previsto do mes.</p>
         </div>
         <div className="filters">
-          <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} />
-          <select value={selectedUser} onChange={(event) => setSelectedUser(event.target.value)}>
-            <option value="">Todos os usuarios</option>
-            {users.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-          </select>
+          <label className="form-field">
+            Competencia
+            <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} />
+          </label>
+          <label className="form-field">
+            Usuario
+            <select value={selectedUser} onChange={(event) => setSelectedUser(event.target.value)}>
+              <option value="">Todos os usuarios</option>
+              {users.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+            </select>
+          </label>
         </div>
       </div>
 
@@ -181,13 +187,25 @@ export function FinancialControlPage() {
       </div>
 
       <form className="panel form-grid compact-form" onSubmit={submitIncome}>
-        <select value={incomeForm.userId} onChange={(event) => setIncomeForm({ ...incomeForm, userId: event.target.value })} required>
-          <option value="">Usuario da renda</option>
-          {users.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-        </select>
-        <input placeholder="Descricao" value={incomeForm.description} onChange={(event) => setIncomeForm({ ...incomeForm, description: event.target.value })} required />
-        <input inputMode="numeric" placeholder="Valor da renda" value={incomeForm.amount} onChange={(event) => setIncomeForm({ ...incomeForm, amount: formatCurrencyInput(event.target.value) })} required />
-        <input type="date" value={incomeForm.receivedDate} onChange={(event) => setIncomeForm({ ...incomeForm, receivedDate: event.target.value })} required />
+        <label className="form-field">
+          Usuario da renda
+          <select value={incomeForm.userId} onChange={(event) => setIncomeForm({ ...incomeForm, userId: event.target.value })} required>
+            <option value="">Selecione</option>
+            {users.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+          </select>
+        </label>
+        <label className="form-field">
+          Descricao
+          <input placeholder="Ex.: Renda mensal" value={incomeForm.description} onChange={(event) => setIncomeForm({ ...incomeForm, description: event.target.value })} required />
+        </label>
+        <label className="form-field">
+          Valor da renda
+          <input inputMode="numeric" placeholder="R$ 0,00" value={incomeForm.amount} onChange={(event) => setIncomeForm({ ...incomeForm, amount: formatCurrencyInput(event.target.value) })} required />
+        </label>
+        <label className="form-field">
+          Data de recebimento
+          <input type="date" value={incomeForm.receivedDate} onChange={(event) => setIncomeForm({ ...incomeForm, receivedDate: event.target.value })} required />
+        </label>
         <button className="primary-button" type="submit" disabled={submittingIncome}>{submittingIncome ? 'Salvando...' : 'Adicionar renda'}</button>
       </form>
 

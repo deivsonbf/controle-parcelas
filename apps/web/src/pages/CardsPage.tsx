@@ -75,26 +75,47 @@ export function CardsPage() {
         </div>
       </div>
       <form className="panel form-grid" onSubmit={submit}>
-        <input placeholder="Nome do cartao" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-        <input placeholder="Ultimos 4 digitos" maxLength={4} value={form.lastFour} onChange={(e) => setForm({ ...form, lastFour: e.target.value })} />
-        <input placeholder="Titular" value={form.ownerName} onChange={(e) => setForm({ ...form, ownerName: e.target.value })} />
-        <div className="card-image-field">
-          <input type="url" placeholder="URL da imagem do cartao" value={form.imageUrl} onChange={(e) => setForm({ ...form, imageUrl: e.target.value })} />
-          <button className="secondary-button" type="button" onClick={generateCardImage}><ImagePlus size={17} /> Gerar imagem</button>
-        </div>
+        <label className="form-field">
+          Nome do cartao
+          <input placeholder="Ex.: Nubank" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+        </label>
+        <label className="form-field">
+          Ultimos 4 digitos
+          <input placeholder="0000" maxLength={4} value={form.lastFour} onChange={(e) => setForm({ ...form, lastFour: e.target.value })} />
+        </label>
+        <label className="form-field">
+          Titular
+          <input placeholder="Nome impresso ou titular" value={form.ownerName} onChange={(e) => setForm({ ...form, ownerName: e.target.value })} />
+        </label>
+        <label className="form-field">
+          Imagem do cartao
+          <div className="card-image-field">
+            <input type="url" placeholder="URL da imagem" value={form.imageUrl} onChange={(e) => setForm({ ...form, imageUrl: e.target.value })} />
+            <button className="secondary-button" type="button" onClick={generateCardImage}><ImagePlus size={17} /> Gerar imagem</button>
+          </div>
+        </label>
         {form.imageUrl && <img className="card-preview" src={form.imageUrl} alt="Previa do cartao" />}
-        <select
-          value={form.ownerUserId}
-          onChange={(e) => {
-            const owner = users.find((item) => item.id === e.target.value);
-            setForm({ ...form, ownerUserId: e.target.value, ownerName: owner?.name ?? form.ownerName });
-          }}
-        >
-          <option value="">Dono no sistema</option>
-          {users.filter((item) => !item.cardBuyerOnly).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-        </select>
-        <input type="number" min={1} max={31} value={form.closingDay} onChange={(e) => setForm({ ...form, closingDay: Number(e.target.value) })} />
-        <input type="number" min={1} max={31} value={form.dueDay} onChange={(e) => setForm({ ...form, dueDay: Number(e.target.value) })} />
+        <label className="form-field">
+          Dono no sistema
+          <select
+            value={form.ownerUserId}
+            onChange={(e) => {
+              const owner = users.find((item) => item.id === e.target.value);
+              setForm({ ...form, ownerUserId: e.target.value, ownerName: owner?.name ?? form.ownerName });
+            }}
+          >
+            <option value="">Nao vinculado</option>
+            {users.filter((item) => !item.cardBuyerOnly).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+          </select>
+        </label>
+        <label className="form-field">
+          Dia de fechamento
+          <input type="number" min={1} max={31} value={form.closingDay} onChange={(e) => setForm({ ...form, closingDay: Number(e.target.value) })} />
+        </label>
+        <label className="form-field">
+          Dia de vencimento
+          <input type="number" min={1} max={31} value={form.dueDay} onChange={(e) => setForm({ ...form, dueDay: Number(e.target.value) })} />
+        </label>
         <label className="checkbox-field"><input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} />Ativo</label>
         <button className="primary-button" type="submit" disabled={submitting}>
           {submitting ? 'Salvando...' : editingId ? 'Salvar alteracoes' : 'Cadastrar cartao'}

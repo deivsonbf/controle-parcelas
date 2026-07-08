@@ -127,52 +127,85 @@ export function ExpensesPage() {
         </div>
         {isAdmin && (
           <div className="filters">
-            <select value={selectedUser} onChange={(event) => setSelectedUser(event.target.value)}>
-              <option value="">Todos os usuarios</option>
-              {users.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-            </select>
-            <select value={selectedCard} onChange={(event) => setSelectedCard(event.target.value)}>
-              <option value="">Todos os cartoes</option>
-              {cards.map((item) => <option key={item.id} value={item.id}>{item.name} **** {item.lastFour}</option>)}
-            </select>
+            <label className="form-field">
+              Usuario
+              <select value={selectedUser} onChange={(event) => setSelectedUser(event.target.value)}>
+                <option value="">Todos os usuarios</option>
+                {users.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+              </select>
+            </label>
+            <label className="form-field">
+              Cartao
+              <select value={selectedCard} onChange={(event) => setSelectedCard(event.target.value)}>
+                <option value="">Todos os cartoes</option>
+                {cards.map((item) => <option key={item.id} value={item.id}>{item.name} **** {item.lastFour}</option>)}
+              </select>
+            </label>
           </div>
         )}
       </div>
 
       {isAdmin && (
         <form className="panel form-grid" onSubmit={submit}>
-          <input placeholder="Descricao" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-          <input
-            inputMode="numeric"
-            placeholder="Valor total"
-            value={form.totalAmount}
-            onChange={(e) => setForm({ ...form, totalAmount: formatCurrencyInput(e.target.value) })}
-            required
-          />
-          <input type="number" min={1} max={120} placeholder="Parcelas" value={form.installments} onChange={(e) => setForm({ ...form, installments: Number(e.target.value) })} />
-          <input type="date" value={form.purchaseDate} onChange={(e) => setForm({ ...form, purchaseDate: e.target.value })} />
-          <select value={form.expenseType} onChange={(e) => setForm({ ...form, expenseType: e.target.value as ExpenseType })} required>
-            {Object.entries(expenseTypeLabels).map(([value, label]) => (
-              <option key={value} value={value}>{label}</option>
-            ))}
-          </select>
+          <label className="form-field">
+            Descricao
+            <input placeholder="Ex.: Mercado, app, farmacia" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+          </label>
+          <label className="form-field">
+            Valor total
+            <input
+              inputMode="numeric"
+              placeholder="R$ 0,00"
+              value={form.totalAmount}
+              onChange={(e) => setForm({ ...form, totalAmount: formatCurrencyInput(e.target.value) })}
+              required
+            />
+          </label>
+          <label className="form-field">
+            Parcelas
+            <input type="number" min={1} max={120} placeholder="1" value={form.installments} onChange={(e) => setForm({ ...form, installments: Number(e.target.value) })} />
+          </label>
+          <label className="form-field">
+            Data da compra
+            <input type="date" value={form.purchaseDate} onChange={(e) => setForm({ ...form, purchaseDate: e.target.value })} />
+          </label>
+          <label className="form-field">
+            Tipo de despesa
+            <select value={form.expenseType} onChange={(e) => setForm({ ...form, expenseType: e.target.value as ExpenseType })} required>
+              {Object.entries(expenseTypeLabels).map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+          </label>
           <label className="checkbox-field">
             <input type="checkbox" checked={form.recurring} onChange={(e) => setForm({ ...form, recurring: e.target.checked })} />
             Recorrente
           </label>
-          <select value={form.userId} onChange={(e) => setForm({ ...form, userId: e.target.value })} required>
-            <option value="">Usuario</option>
-            {users.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-          </select>
-          <select value={form.cardId} onChange={(e) => setForm({ ...form, cardId: e.target.value })} required>
-            <option value="">Cartao</option>
-            {cards.map((item) => <option key={item.id} value={item.id}>{item.name} **** {item.lastFour}</option>)}
-          </select>
-          <select value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: e.target.value })} required>
-            <option value="">Categoria</option>
-            {categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-          </select>
-          <input placeholder="Observacoes (opcional)" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+          <label className="form-field">
+            Usuario
+            <select value={form.userId} onChange={(e) => setForm({ ...form, userId: e.target.value })} required>
+              <option value="">Selecione</option>
+              {users.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+            </select>
+          </label>
+          <label className="form-field">
+            Cartao
+            <select value={form.cardId} onChange={(e) => setForm({ ...form, cardId: e.target.value })} required>
+              <option value="">Selecione</option>
+              {cards.map((item) => <option key={item.id} value={item.id}>{item.name} **** {item.lastFour}</option>)}
+            </select>
+          </label>
+          <label className="form-field">
+            Categoria
+            <select value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: e.target.value })} required>
+              <option value="">Selecione</option>
+              {categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+            </select>
+          </label>
+          <label className="form-field">
+            Observacoes
+            <input placeholder="Opcional" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+          </label>
           <button className="primary-button" type="submit" disabled={submitting}>
             {submitting ? 'Salvando...' : editingId ? 'Salvar alteracoes' : 'Cadastrar compra'}
           </button>

@@ -164,22 +164,31 @@ export function DashboardPage() {
           <p>Acompanhe faturas, despesas mensais e pagamentos do periodo selecionado.</p>
         </div>
         <div className="filters">
-          <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} />
+          <label className="form-field">
+            Competencia
+            <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} />
+          </label>
           {user?.role === 'admin' && (
-            <select value={selectedUser} onChange={(event) => setSelectedUser(event.target.value)}>
-              <option value="">Todos os usuarios</option>
-              {users.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-            </select>
+            <label className="form-field">
+              Usuario
+              <select value={selectedUser} onChange={(event) => setSelectedUser(event.target.value)}>
+                <option value="">Todos os usuarios</option>
+                {users.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+              </select>
+            </label>
           )}
           {user?.role === 'admin' && (
-            <select value={selectedCard} onChange={(event) => setSelectedCard(event.target.value)}>
-              <option value="">Todos os cartoes</option>
-              {cards.map((card) => (
-                <option key={card.id} value={card.id}>
-                  {card.name} **** {card.lastFour}
-                </option>
-              ))}
-            </select>
+            <label className="form-field">
+              Cartao
+              <select value={selectedCard} onChange={(event) => setSelectedCard(event.target.value)}>
+                <option value="">Todos os cartoes</option>
+                {cards.map((card) => (
+                  <option key={card.id} value={card.id}>
+                    {card.name} **** {card.lastFour}
+                  </option>
+                ))}
+              </select>
+            </label>
           )}
         </div>
       </div>
@@ -220,21 +229,33 @@ export function DashboardPage() {
             </div>
           </div>
           <form className="form-grid compact-form" onSubmit={submitPayment}>
-            <select value={paymentForm.cardId} onChange={(event) => setPaymentForm({ ...paymentForm, cardId: event.target.value })} required>
-              <option value="">Cartao</option>
-              {cards.map((card) => (
-                <option key={card.id} value={card.id}>{card.name} **** {card.lastFour}</option>
-              ))}
-            </select>
-            <input
-              inputMode="numeric"
-              placeholder="Valor pago"
-              value={paymentForm.amount}
-              onChange={(event) => setPaymentForm({ ...paymentForm, amount: formatCurrencyInput(event.target.value) })}
-              required
-            />
-            <input type="date" value={paymentForm.paymentDate} onChange={(event) => setPaymentForm({ ...paymentForm, paymentDate: event.target.value })} required />
-            <input placeholder="Observacao (opcional)" value={paymentForm.notes} onChange={(event) => setPaymentForm({ ...paymentForm, notes: event.target.value })} />
+            <label className="form-field">
+              Cartao
+              <select value={paymentForm.cardId} onChange={(event) => setPaymentForm({ ...paymentForm, cardId: event.target.value })} required>
+                <option value="">Selecione</option>
+                {cards.map((card) => (
+                  <option key={card.id} value={card.id}>{card.name} **** {card.lastFour}</option>
+                ))}
+              </select>
+            </label>
+            <label className="form-field">
+              Valor pago
+              <input
+                inputMode="numeric"
+                placeholder="R$ 0,00"
+                value={paymentForm.amount}
+                onChange={(event) => setPaymentForm({ ...paymentForm, amount: formatCurrencyInput(event.target.value) })}
+                required
+              />
+            </label>
+            <label className="form-field">
+              Data do pagamento
+              <input type="date" value={paymentForm.paymentDate} onChange={(event) => setPaymentForm({ ...paymentForm, paymentDate: event.target.value })} required />
+            </label>
+            <label className="form-field">
+              Observacao
+              <input placeholder="Opcional" value={paymentForm.notes} onChange={(event) => setPaymentForm({ ...paymentForm, notes: event.target.value })} />
+            </label>
             <button className="primary-button" type="submit" disabled={paymentSubmitting}>
               {paymentSubmitting ? 'Salvando...' : 'Registrar pagamento'}
             </button>
