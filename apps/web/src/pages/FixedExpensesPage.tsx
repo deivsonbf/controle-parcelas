@@ -11,6 +11,7 @@ const emptyForm = {
   amount: '',
   dueDay: 1,
   startsOn: new Date().toISOString().slice(0, 10),
+  recurring: true,
   active: true,
   userId: '',
   categoryId: '',
@@ -35,7 +36,7 @@ export function FixedExpensesPage() {
 
   function load() {
     api<FixedExpense[]>(`/fixed-expenses?month=${month}`).then(setFixedExpenses).catch((error) => {
-      toast.error('Erro ao carregar despesas fixas', error instanceof Error ? error.message : undefined);
+      toast.error('Erro ao carregar despesas mensais', error instanceof Error ? error.message : undefined);
     });
     api<Category[]>('/categories').then(setCategories).catch((error) => {
       toast.error('Erro ao carregar categorias', error instanceof Error ? error.message : undefined);
@@ -60,12 +61,12 @@ export function FixedExpensesPage() {
           amount: currencyInputToNumber(form.amount)
         })
       });
-      toast.success(editingId ? 'Despesa fixa atualizada' : 'Despesa fixa cadastrada', `${form.description} foi salva.`);
+      toast.success(editingId ? 'Despesa mensal atualizada' : 'Despesa mensal cadastrada', `${form.description} foi salva.`);
       setForm(emptyForm);
       setEditingId(null);
       load();
     } catch (error) {
-      toast.error(`Erro ao ${editingId ? 'atualizar' : 'cadastrar'} despesa fixa`, error instanceof Error ? error.message : undefined);
+      toast.error(`Erro ao ${editingId ? 'atualizar' : 'cadastrar'} despesa mensal`, error instanceof Error ? error.message : undefined);
     } finally {
       setSubmitting(false);
     }
@@ -73,23 +74,23 @@ export function FixedExpensesPage() {
 
   function editFixedExpense(item: FixedExpense) {
     setEditingId(item.id);
-    setForm({ description: item.description, amount: formatCurrencyInput(String(Math.round(Number(item.amount) * 100))), dueDay: item.dueDay, startsOn: item.startsOn.slice(0, 10), active: item.active, userId: item.userId, categoryId: item.categoryId, notes: item.notes ?? '' });
+    setForm({ description: item.description, amount: formatCurrencyInput(String(Math.round(Number(item.amount) * 100))), dueDay: item.dueDay, startsOn: item.startsOn.slice(0, 10), recurring: item.recurring, active: item.active, userId: item.userId, categoryId: item.categoryId, notes: item.notes ?? '' });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function cancelEdit() { setEditingId(null); setForm(emptyForm); }
 
   async function removeFixedExpense(fixedExpense: FixedExpense) {
-    if (!window.confirm(`Excluir a despesa fixa "${fixedExpense.description}"?`)) {
+    if (!window.confirm(`Excluir a despesa mensal "${fixedExpense.description}"?`)) {
       return;
     }
 
     try {
       await api(`/fixed-expenses/${fixedExpense.id}`, { method: 'DELETE' });
-      toast.success('Despesa fixa excluida', `${fixedExpense.description} foi removida.`);
+      toast.success('Despesa mensal excluida', `${fixedExpense.description} foi removida.`);
       load();
     } catch (error) {
-      toast.error('Erro ao excluir despesa fixa', error instanceof Error ? error.message : undefined);
+      toast.error('Erro ao excluir despesa mensal', error instanceof Error ? error.message : undefined);
     }
   }
 
@@ -99,7 +100,7 @@ export function FixedExpensesPage() {
     <section className="page">
       <div className="page-header">
         <div>
-          <h1>Despesas fixas</h1>
+          <h1>Despesas mensais</h1>
         </div>
         <div className="filters">
           <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} />
@@ -130,9 +131,13 @@ export function FixedExpensesPage() {
             <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} />
             Ativa
           </label>
+          <label className="checkbox-field">
+            <input type="checkbox" checked={form.recurring} onChange={(e) => setForm({ ...form, recurring: e.target.checked })} />
+            Recorrente
+          </label>
           <input placeholder="Observacoes (opcional)" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
           <button className="primary-button" type="submit" disabled={submitting}>
-            {submitting ? 'Salvando...' : editingId ? 'Salvar alteracoes' : 'Cadastrar despesa fixa'}
+            {submitting ? 'Salvando...' : editingId ? 'Salvar alteracoes' : 'Cadastrar despesa mensal'}
           </button>
           {editingId && <button className="secondary-button" type="button" onClick={cancelEdit}><X size={17} /> Cancelar</button>}
         </form>
@@ -155,6 +160,7 @@ export function FixedExpensesPage() {
                 <th>Valor mensal</th>
                 <th>Vencimento</th>
                 <th>Inicio</th>
+                <th>Recorrente</th>
                 <th>Status</th>
                 {isAdmin && <th aria-label="Acoes" />}
               </tr>
@@ -172,14 +178,15 @@ export function FixedExpensesPage() {
                   <td>{money(Number(item.amount))}</td>
                   <td>Dia {item.dueDay}</td>
                   <td>{formatDate(item.startsOn)}</td>
+                  <td><span className={`status-pill ${item.recurring ? 'active' : 'inactive'}`}>{item.recurring ? 'Sim' : 'Nao'}</span></td>
                   <td><span className={`status-pill ${item.active ? 'active' : 'inactive'}`}>{item.active ? 'Ativa' : 'Inativa'}</span></td>
                   {isAdmin && (
                     <td className="actions-cell"><div className="table-actions">
-                      <button className="icon-button" type="button" title="Editar despesa fixa" aria-label={`Editar ${item.description}`} onClick={() => editFixedExpense(item)}><Pencil size={17} /></button>
+                      <button className="icon-button" type="button" title="Editar despesa mensal" aria-label={`Editar ${item.description}`} onClick={() => editFixedExpense(item)}><Pencil size={17} /></button>
                       <button
                         className="icon-button danger"
                         type="button"
-                        title="Excluir despesa fixa"
+                        title="Excluir despesa mensal"
                         aria-label={`Excluir ${item.description}`}
                         onClick={() => removeFixedExpense(item)}
                       >
@@ -192,7 +199,7 @@ export function FixedExpensesPage() {
             </tbody>
           </table>
         </div>
-        {fixedExpenses.length === 0 && <p className="empty-state">Nenhuma despesa fixa ativa neste mes.</p>}
+        {fixedExpenses.length === 0 && <p className="empty-state">Nenhuma despesa mensal ativa neste mes.</p>}
       </div>
     </section>
   );

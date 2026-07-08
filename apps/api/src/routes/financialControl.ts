@@ -65,6 +65,7 @@ router.get('/', async (req, res) => {
                     fe.description,
                     fe.amount,
                     fe.due_day AS "dueDay",
+                    fe.recurring,
                     u.id AS "userId",
                     u.name AS "userName",
                     cat.name AS "categoryName"
@@ -73,6 +74,10 @@ router.get('/', async (req, res) => {
              JOIN categories cat ON cat.id = fe.category_id
              WHERE fe.active = TRUE
                AND fe.starts_on <= (TO_DATE($1, 'YYYY-MM') + INTERVAL '1 month - 1 day')::date
+               AND (
+                 fe.recurring = TRUE
+                 OR DATE_TRUNC('month', fe.starts_on)::date = TO_DATE($1, 'YYYY-MM')
+               )
                AND ($2::uuid[] IS NULL OR fe.user_id = ANY($2::uuid[]))
              ORDER BY fe.due_day, fe.description`,
             [targetMonth, targetUserIds]

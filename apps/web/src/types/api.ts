@@ -62,6 +62,7 @@ export type FixedExpense = {
   amount: string;
   dueDay: number;
   startsOn: string;
+  recurring: boolean;
   active: boolean;
   notes?: string | null;
   userId: string;

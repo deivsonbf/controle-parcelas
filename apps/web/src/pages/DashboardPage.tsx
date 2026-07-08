@@ -186,7 +186,7 @@ export function DashboardPage() {
       <div className={`stats-grid${isBuyerOnly ? ' single-stat' : ''}`}>
         {!isBuyerOnly && <StatCard label="Somatorio geral" value={money(dashboard?.grandTotal ?? 0)} />}
         <StatCard label={isBuyerOnly ? 'Total das minhas parcelas' : 'Saldo no cartao'} value={money(dashboard?.cardsTotal ?? 0)} tone="green" />
-        {!isBuyerOnly && <StatCard label="Despesas fixas" value={money(dashboard?.fixedExpensesTotal ?? 0)} tone="amber" />}
+        {!isBuyerOnly && <StatCard label="Despesas mensais" value={money(dashboard?.fixedExpensesTotal ?? 0)} tone="amber" />}
       </div>
 
       {user?.role === 'admin' && (
@@ -294,7 +294,7 @@ export function DashboardPage() {
           <div className="panel">
             <div className="section-heading">
               <div>
-                <h2>Despesas fixas</h2>
+                <h2>Despesas mensais</h2>
                 <span>{dashboard?.fixedExpenses.length ?? 0} despesas ativas para o mes</span>
               </div>
             </div>
@@ -308,7 +308,7 @@ export function DashboardPage() {
                   <strong>{money(Number(expense.amount))}</strong>
                 </div>
               ))}
-              {dashboard?.fixedExpenses.length === 0 && <p className="empty-state">Nenhuma despesa fixa ativa neste mes.</p>}
+              {dashboard?.fixedExpenses.length === 0 && <p className="empty-state">Nenhuma despesa mensal ativa neste mes.</p>}
             </div>
           </div>
         )}

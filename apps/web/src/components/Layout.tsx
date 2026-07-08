@@ -29,7 +29,7 @@ export function Layout() {
           <NavLink to="/expenses"><Receipt size={18} />Compras</NavLink>
           <NavLink to="/installment-projection"><BarChart3 size={18} />Projecao</NavLink>
           {isAdmin && <NavLink to="/financial-control"><WalletCards size={18} />Controle financeiro</NavLink>}
-          {!user?.cardBuyerOnly && <NavLink to="/fixed-expenses"><CalendarClock size={18} />Despesas fixas</NavLink>}
+          {!user?.cardBuyerOnly && <NavLink to="/fixed-expenses"><CalendarClock size={18} />Despesas mensais</NavLink>}
           {isAdmin && <NavLink to="/users"><Users size={18} />Usuarios</NavLink>}
           {isAdmin && <NavLink to="/cards"><CreditCard size={18} />Cartoes</NavLink>}
           {isAdmin && <NavLink to="/categories"><Folders size={18} />Categorias</NavLink>}

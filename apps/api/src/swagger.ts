@@ -87,7 +87,7 @@ export const swaggerSpec = swaggerJsdoc({
                     jointAccount: {
                       type: 'boolean',
                       example: false,
-                      description: 'Quando ativo, soma despesas fixas e compras de todos os usuarios ativos marcados como conta conjunta.'
+                      description: 'Quando ativo, soma despesas mensais e compras de todos os usuarios ativos marcados como conta conjunta.'
                     }
                   }
                 }
@@ -185,15 +185,15 @@ export const swaggerSpec = swaggerJsdoc({
       '/api/fixed-expenses': {
         get: {
           tags: ['FixedExpenses'],
-          summary: 'Lista despesas fixas; quando month e informado, retorna as despesas ativas daquela competencia',
+          summary: 'Lista despesas mensais; quando month e informado, retorna recorrentes ativas e nao recorrentes daquela competencia',
           parameters: [
             { name: 'month', in: 'query', schema: { type: 'string', example: '2026-07' } }
           ],
-          responses: { '200': { description: 'Lista de despesas fixas' } }
+          responses: { '200': { description: 'Lista de despesas mensais' } }
         },
         post: {
           tags: ['FixedExpenses'],
-          summary: 'Cria despesa fixa pelo administrador',
+          summary: 'Cria despesa mensal pelo administrador',
           requestBody: {
             required: true,
             content: {
@@ -206,6 +206,7 @@ export const swaggerSpec = swaggerJsdoc({
                     amount: { type: 'number', example: 129.9 },
                     dueDay: { type: 'integer', minimum: 1, maximum: 31, example: 10 },
                     startsOn: { type: 'string', format: 'date', example: '2026-07-01' },
+                    recurring: { type: 'boolean', example: true },
                     active: { type: 'boolean', example: true },
                     userId: { type: 'string', format: 'uuid' },
                     categoryId: { type: 'string', format: 'uuid' },
@@ -215,7 +216,7 @@ export const swaggerSpec = swaggerJsdoc({
               }
             }
           },
-          responses: { '201': { description: 'Despesa fixa criada' } }
+          responses: { '201': { description: 'Despesa mensal criada' } }
         }
       },
       '/api/invoice-payments': {
@@ -330,7 +331,7 @@ export const swaggerSpec = swaggerJsdoc({
       '/api/reports/dashboard': {
         get: {
           tags: ['Reports'],
-          summary: 'Resumo principal com despesas fixas e totais por cartao',
+          summary: 'Resumo principal com despesas mensais e totais por cartao',
           parameters: [
             { name: 'month', in: 'query', schema: { type: 'string', example: '2026-07' } },
             { name: 'userId', in: 'query', schema: { type: 'string', format: 'uuid' } },

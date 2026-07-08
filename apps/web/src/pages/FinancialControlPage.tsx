@@ -124,7 +124,7 @@ export function FinancialControlPage() {
   function payableRow(kind: 'fixed_expense' | 'card_invoice', item: FinancialPayable) {
     const title = kind === 'card_invoice'
       ? `${item.cardName} **** ${item.cardLastFour}`
-      : item.description ?? 'Despesa fixa';
+      : item.description ?? 'Despesa mensal';
     const subtitle = kind === 'card_invoice'
       ? `Dono: ${item.ownerUserName ?? 'Nao vinculado'}${Number(item.invoicePaymentsTotal ?? 0) > 0 ? ` - adiantamentos: ${money(Number(item.invoicePaymentsTotal))}` : ''}`
       : `${item.userName} - ${item.categoryName} - vencimento dia ${item.dueDay}`;
@@ -234,14 +234,14 @@ export function FinancialControlPage() {
       <div className="panel">
         <div className="section-heading">
           <div>
-            <h2>Despesas fixas</h2>
+            <h2>Despesas mensais</h2>
             <span>{summary?.fixedExpenses.length ?? 0} despesas no mes</span>
           </div>
         </div>
         <div className="summary-list">
           {(summary?.fixedExpenses ?? []).map((item) => payableRow('fixed_expense', item))}
           {summary?.fixedExpenses.length === 0 && (
-            <p className="empty-state">{loading ? 'Carregando despesas...' : 'Nenhuma despesa fixa encontrada neste mes.'}</p>
+            <p className="empty-state">{loading ? 'Carregando despesas...' : 'Nenhuma despesa mensal encontrada neste mes.'}</p>
           )}
         </div>
       </div>

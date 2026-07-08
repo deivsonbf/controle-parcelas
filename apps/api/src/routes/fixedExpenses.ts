@@ -13,6 +13,7 @@ const fixedExpenseSchema = z.object({
   amount: z.number().positive(),
   dueDay: z.number().int().min(1).max(31),
   startsOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  recurring: z.boolean().default(true),
   active: z.boolean().default(true),
   userId: z.string().uuid(),
   categoryId: z.string().uuid(),
@@ -37,6 +38,7 @@ router.get('/', async (req, res) => {
               fe.amount,
               fe.due_day AS "dueDay",
               TO_CHAR(fe.starts_on, 'YYYY-MM-DD') AS "startsOn",
+              fe.recurring,
               fe.active,
               fe.notes,
               u.id AS "userId",
@@ -51,6 +53,10 @@ router.get('/', async (req, res) => {
          AND ($2::text IS NULL OR (
            fe.active = TRUE
            AND fe.starts_on <= (TO_DATE($2, 'YYYY-MM') + INTERVAL '1 month - 1 day')::date
+           AND (
+             fe.recurring = TRUE
+             OR DATE_TRUNC('month', fe.starts_on)::date = TO_DATE($2, 'YYYY-MM')
+           )
          ))
        ORDER BY fe.active DESC, fe.due_day, fe.description`,
       [scopedUserIds, query.month ?? null]
@@ -66,14 +72,15 @@ router.post('/', requireRole('admin'), async (req, res) => {
     const body = fixedExpenseSchema.parse(req.body);
     const result = await pool.query(
       `INSERT INTO fixed_expenses
-       (description, amount, due_day, starts_on, active, user_id, category_id, notes, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       (description, amount, due_day, starts_on, recurring, active, user_id, category_id, notes, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING id`,
       [
         body.description,
         body.amount,
         body.dueDay,
         body.startsOn,
+        body.recurring,
         body.active,
         body.userId,
         body.categoryId,
@@ -96,18 +103,20 @@ router.put('/:id', requireRole('admin'), async (req, res) => {
            amount = $2,
            due_day = $3,
            starts_on = $4,
-           active = $5,
-           user_id = $6,
-           category_id = $7,
-           notes = $8,
+           recurring = $5,
+           active = $6,
+           user_id = $7,
+           category_id = $8,
+           notes = $9,
            updated_at = NOW()
-       WHERE id = $9
+       WHERE id = $10
        RETURNING id`,
       [
         body.description,
         body.amount,
         body.dueDay,
         body.startsOn,
+        body.recurring,
         body.active,
         body.userId,
         body.categoryId,
