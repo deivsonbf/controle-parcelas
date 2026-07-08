@@ -252,15 +252,17 @@ router.get('/installment-projection', async (req, res) => {
            )::date AS reference_month
          ),
          card_totals AS (
-           SELECT reference_month,
-                  SUM(installment_amount)::numeric(12,2) AS total,
+           SELECT ei.reference_month,
+                  SUM(ei.installment_amount)::numeric(12,2) AS total,
                   COUNT(*)::integer AS installments
-           FROM expense_installments
-           WHERE reference_month BETWEEN (TO_DATE($1, 'YYYY-MM') - INTERVAL '6 months')::date
-                                     AND (TO_DATE($1, 'YYYY-MM') + INTERVAL '6 months')::date
-             AND ($2::uuid[] IS NULL OR user_id = ANY($2::uuid[]))
-             AND ($3::uuid IS NULL OR card_id = $3)
-           GROUP BY reference_month
+           FROM expense_installments ei
+           JOIN users buyer ON buyer.id = ei.user_id
+           WHERE ei.reference_month BETWEEN (TO_DATE($1, 'YYYY-MM') - INTERVAL '6 months')::date
+                                        AND (TO_DATE($1, 'YYYY-MM') + INTERVAL '6 months')::date
+             AND buyer.card_buyer_only = FALSE
+             AND ($2::uuid[] IS NULL OR ei.user_id = ANY($2::uuid[]))
+             AND ($3::uuid IS NULL OR ei.card_id = $3)
+           GROUP BY ei.reference_month
          ),
          fixed_totals AS (
            SELECT m.reference_month,
@@ -274,7 +276,9 @@ router.get('/installment-projection', async (req, res) => {
               fe.recurring = TRUE
               OR DATE_TRUNC('month', fe.starts_on)::date = m.reference_month
             )
-           WHERE ($2::uuid[] IS NULL OR fe.user_id = ANY($2::uuid[]))
+           JOIN users fixed_user ON fixed_user.id = fe.user_id
+           WHERE fixed_user.card_buyer_only = FALSE
+             AND ($2::uuid[] IS NULL OR fe.user_id = ANY($2::uuid[]))
            GROUP BY m.reference_month
          )
          SELECT TO_CHAR(m.reference_month, 'YYYY-MM') AS month,
@@ -291,19 +295,21 @@ router.get('/installment-projection', async (req, res) => {
         [targetMonth, targetUserIds, targetCardId]
       ),
       pool.query(
-        `SELECT TO_CHAR(reference_month, 'YYYY-MM') AS month,
-                category_id AS "categoryId",
-                category_name AS "categoryName",
-                category_color AS "categoryColor",
-                SUM(installment_amount)::numeric(12,2) AS total,
+        `SELECT TO_CHAR(ei.reference_month, 'YYYY-MM') AS month,
+                ei.category_id AS "categoryId",
+                ei.category_name AS "categoryName",
+                ei.category_color AS "categoryColor",
+                SUM(ei.installment_amount)::numeric(12,2) AS total,
                 COUNT(*)::integer AS installments
-         FROM expense_installments
-         WHERE reference_month BETWEEN (TO_DATE($1, 'YYYY-MM') - INTERVAL '6 months')::date
-                                   AND (TO_DATE($1, 'YYYY-MM') + INTERVAL '6 months')::date
-           AND ($2::uuid[] IS NULL OR user_id = ANY($2::uuid[]))
-           AND ($3::uuid IS NULL OR card_id = $3)
-         GROUP BY reference_month, category_id, category_name, category_color
-         ORDER BY reference_month, total DESC, category_name`,
+         FROM expense_installments ei
+         JOIN users buyer ON buyer.id = ei.user_id
+         WHERE ei.reference_month BETWEEN (TO_DATE($1, 'YYYY-MM') - INTERVAL '6 months')::date
+                                      AND (TO_DATE($1, 'YYYY-MM') + INTERVAL '6 months')::date
+           AND buyer.card_buyer_only = FALSE
+           AND ($2::uuid[] IS NULL OR ei.user_id = ANY($2::uuid[]))
+           AND ($3::uuid IS NULL OR ei.card_id = $3)
+         GROUP BY ei.reference_month, ei.category_id, ei.category_name, ei.category_color
+         ORDER BY ei.reference_month, total DESC, ei.category_name`,
         [targetMonth, targetUserIds, targetCardId]
       ),
       pool.query(
@@ -328,8 +334,10 @@ router.get('/installment-projection', async (req, res) => {
             fe.recurring = TRUE
             OR DATE_TRUNC('month', fe.starts_on)::date = m.reference_month
           )
+         JOIN users fixed_user ON fixed_user.id = fe.user_id
          JOIN categories cat ON cat.id = fe.category_id
-         WHERE ($2::uuid[] IS NULL OR fe.user_id = ANY($2::uuid[]))
+         WHERE fixed_user.card_buyer_only = FALSE
+           AND ($2::uuid[] IS NULL OR fe.user_id = ANY($2::uuid[]))
          GROUP BY m.reference_month, cat.id, cat.name, cat.color
          ORDER BY m.reference_month, total DESC, cat.name`,
         [targetMonth, targetUserIds]
@@ -397,14 +405,16 @@ router.get('/summary', async (req, res) => {
            )::date AS reference_month
          ),
          totals AS (
-           SELECT reference_month,
-                  SUM(installment_amount)::numeric(12,2) AS total,
+           SELECT ei.reference_month,
+                  SUM(ei.installment_amount)::numeric(12,2) AS total,
                   COUNT(*)::integer AS installments
-           FROM expense_installments
-           WHERE user_id = ANY($1::uuid[])
-             AND reference_month BETWEEN (TO_DATE($4, 'YYYY-MM') - INTERVAL '6 months')::date
-                                     AND (TO_DATE($4, 'YYYY-MM') + INTERVAL '6 months')::date
-           GROUP BY reference_month
+           FROM expense_installments ei
+           JOIN users buyer ON buyer.id = ei.user_id
+           WHERE ei.user_id = ANY($1::uuid[])
+             AND buyer.card_buyer_only = FALSE
+             AND ei.reference_month BETWEEN (TO_DATE($4, 'YYYY-MM') - INTERVAL '6 months')::date
+                                        AND (TO_DATE($4, 'YYYY-MM') + INTERVAL '6 months')::date
+           GROUP BY ei.reference_month
          )
          SELECT TO_CHAR(m.reference_month, 'YYYY-MM') AS month,
                 $2::uuid AS "userId",
@@ -421,16 +431,18 @@ router.get('/summary', async (req, res) => {
     }
 
     const result = await pool.query(
-      `SELECT TO_CHAR(reference_month, 'YYYY-MM') AS month,
-              user_id AS "userId",
-              user_name AS "userName",
-              SUM(installment_amount)::numeric(12,2) AS total,
+      `SELECT TO_CHAR(ei.reference_month, 'YYYY-MM') AS month,
+              ei.user_id AS "userId",
+              ei.user_name AS "userName",
+              SUM(ei.installment_amount)::numeric(12,2) AS total,
               COUNT(*)::integer AS installments
-       FROM expense_installments
-       WHERE reference_month BETWEEN (TO_DATE($1, 'YYYY-MM') - INTERVAL '6 months')::date
-                                 AND (TO_DATE($1, 'YYYY-MM') + INTERVAL '6 months')::date
-       GROUP BY reference_month, user_id, user_name
-       ORDER BY month DESC, user_name`,
+       FROM expense_installments ei
+       JOIN users buyer ON buyer.id = ei.user_id
+       WHERE ei.reference_month BETWEEN (TO_DATE($1, 'YYYY-MM') - INTERVAL '6 months')::date
+                                    AND (TO_DATE($1, 'YYYY-MM') + INTERVAL '6 months')::date
+         AND buyer.card_buyer_only = FALSE
+       GROUP BY ei.reference_month, ei.user_id, ei.user_name
+       ORDER BY month DESC, ei.user_name`,
       [targetMonth]
     );
     res.json(result.rows);

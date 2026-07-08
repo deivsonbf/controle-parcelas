@@ -34,8 +34,8 @@ export function MonthlyInstallmentsChart({
     <div className="panel installments-chart-panel">
       <div className="chart-heading">
         <div>
-          <h2>Parcelas por mes</h2>
-          <p>Valor total e quantidade de parcelas em cada fatura</p>
+          <h2>Compras por mes</h2>
+          <p>Valor total e quantidade de compras em cada fatura</p>
         </div>
         <div className="chart-heading-icon" aria-hidden="true">
           <BarChart3 size={21} />
@@ -52,7 +52,7 @@ export function MonthlyInstallmentsChart({
             className="installments-chart"
             style={{ '--chart-columns': orderedItems.length } as CSSProperties}
             role="img"
-            aria-label="Grafico do valor total de parcelas por mes"
+            aria-label="Grafico do valor total de compras por mes"
           >
             {orderedItems.map((item) => {
               const total = Number(item.total);
@@ -64,14 +64,14 @@ export function MonthlyInstallmentsChart({
                   className={`chart-column${isSelected ? ' selected' : ''}`}
                   key={item.month}
                   type="button"
-                  title={`${monthLabel(item.month)}: ${money(total)} em ${item.installments} parcelas`}
-                  aria-label={`Abrir fatura de ${monthLabel(item.month)}, total ${money(total)} em ${item.installments} parcelas`}
+                  title={`${monthLabel(item.month)}: ${money(total)} em ${item.installments} compras`}
+                  aria-label={`Abrir fatura de ${monthLabel(item.month)}, total ${money(total)} em ${item.installments} compras`}
                   aria-pressed={isSelected}
                   onClick={() => onSelectMonth(item.month)}
                 >
                   <span className="chart-value">
                     {money(total)}
-                    <small>{item.installments} {item.installments === 1 ? 'parcela' : 'parcelas'}</small>
+                    <small>{item.installments} {item.installments === 1 ? 'compra' : 'compras'}</small>
                   </span>
                   <span
                     className="chart-bar"

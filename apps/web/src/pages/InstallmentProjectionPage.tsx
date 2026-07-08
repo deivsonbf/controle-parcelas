@@ -123,10 +123,11 @@ export function InstallmentProjectionPage() {
                 const total = Number(item[valueKey]);
                 const height = highestTotal > 0 ? Math.max((total / highestTotal) * 100, 4) : 4;
                 const count = Number(item[countKey]);
+                const countText = count === 1 ? countLabel.replace(/s$/, '') : countLabel;
 
                 return (
                   <div className="projection-column" key={`${title}-${item.month}`} title={`${monthLabel(item.month)}: ${money(total)}`}>
-                    <span className="chart-value">{money(total)}<small>{count} {countLabel}</small></span>
+                    <span className="chart-value">{money(total)}<small>{count} {countText}</small></span>
                     <span className="chart-bar" style={{ '--bar-height': `${height}%` } as CSSProperties} />
                     <span className="chart-month">{monthLabel(item.month)}</span>
                   </div>
@@ -225,11 +226,11 @@ export function InstallmentProjectionPage() {
 
       <div className="stats-grid">
         <div className="stat-card"><span>Periodo</span><strong>{projection ? `${monthLabel(projection.startMonth)} - ${monthLabel(projection.endMonth)}` : '-'}</strong></div>
-        <div className="stat-card green"><span>Cartoes</span><strong>{money(projection?.cardTotal ?? 0)}</strong></div>
+        <div className="stat-card green"><span>Compras no cartao</span><strong>{money(projection?.cardTotal ?? 0)}</strong></div>
         <div className="stat-card amber"><span>Despesas mensais</span><strong>{money(projection?.fixedTotal ?? 0)}</strong></div>
       </div>
 
-      {renderMonthlyBars('Cartoes', 'Parcelas de cartao nos 13 meses da janela', 'cardTotal', 'cardInstallments', highestCardTotal, 'parcelas')}
+      {renderMonthlyBars('Compras no cartao', 'Compras em cartao nos 13 meses da janela', 'cardTotal', 'cardInstallments', highestCardTotal, 'compras')}
       {renderMonthlyBars('Despesas mensais', 'Despesas recorrentes ou da competencia em cada mes', 'fixedTotal', 'fixedExpenses', highestFixedTotal, 'despesas')}
       {renderCategoryPies('Categorias do cartao', 'Distribuicao das compras no cartao por categoria', 'cardCategories', cardCategoryTotals, 'Nenhuma categoria de cartao encontrada.')}
       {renderCategoryPies('Categorias das despesas mensais', 'Distribuicao das despesas mensais por categoria', 'fixedCategories', fixedCategoryTotals, 'Nenhuma categoria de despesa mensal encontrada.')}
