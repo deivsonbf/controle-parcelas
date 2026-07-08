@@ -292,7 +292,7 @@ router.get('/installment-projection', async (req, res) => {
       categories: categoriesByMonth.get(month.month) ?? []
     }));
 
-    const grandTotal = months.reduce((sum, month) => sum + Number(month.total), 0);
+    const grandTotal = Number(months.reduce((sum, month) => sum + Number(month.total), 0).toFixed(2));
     const installments = months.reduce((sum, month) => sum + Number(month.installments), 0);
 
     res.json({
