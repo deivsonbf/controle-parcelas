@@ -146,6 +146,10 @@ export const swaggerSpec = swaggerJsdoc({
         get: {
           tags: ['Expenses'],
           summary: 'Lista compras; usuario comum ve as suas ou o escopo de conta conjunta',
+          parameters: [
+            { name: 'userId', in: 'query', schema: { type: 'string', format: 'uuid' } },
+            { name: 'cardId', in: 'query', schema: { type: 'string', format: 'uuid' } }
+          ],
           responses: { '200': { description: 'Lista de compras' } }
         },
         post: {

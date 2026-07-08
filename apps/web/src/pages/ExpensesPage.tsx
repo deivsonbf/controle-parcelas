@@ -35,11 +35,17 @@ export function ExpensesPage() {
   const [cards, setCards] = useState<Card[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [form, setForm] = useState(emptyForm);
+  const [selectedUser, setSelectedUser] = useState('');
+  const [selectedCard, setSelectedCard] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   function load() {
-    api<Expense[]>('/expenses').then(setExpenses).catch((error) => {
+    const query = new URLSearchParams();
+    if (selectedUser) query.set('userId', selectedUser);
+    if (selectedCard) query.set('cardId', selectedCard);
+
+    api<Expense[]>(`/expenses${query.size ? `?${query}` : ''}`).then(setExpenses).catch((error) => {
       toast.error('Erro ao carregar compras', error instanceof Error ? error.message : undefined);
     });
     api<Category[]>('/categories').then(setCategories).catch((error) => {
@@ -55,7 +61,7 @@ export function ExpensesPage() {
     }
   }
 
-  useEffect(load, [isAdmin]);
+  useEffect(load, [isAdmin, selectedCard, selectedUser]);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -119,6 +125,18 @@ export function ExpensesPage() {
           <h1>Compras</h1>
           <p>Cadastre compras no cartao e acompanhe como elas entram nas faturas mensais.</p>
         </div>
+        {isAdmin && (
+          <div className="filters">
+            <select value={selectedUser} onChange={(event) => setSelectedUser(event.target.value)}>
+              <option value="">Todos os usuarios</option>
+              {users.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+            </select>
+            <select value={selectedCard} onChange={(event) => setSelectedCard(event.target.value)}>
+              <option value="">Todos os cartoes</option>
+              {cards.map((item) => <option key={item.id} value={item.id}>{item.name} **** {item.lastFour}</option>)}
+            </select>
+          </div>
+        )}
       </div>
 
       {isAdmin && (

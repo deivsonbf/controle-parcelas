@@ -21,23 +21,35 @@ const expenseSchema = z.object({
   notes: z.string().optional().nullable()
 });
 
+const querySchema = z.object({
+  userId: z.string().uuid().optional(),
+  cardId: z.string().uuid().optional()
+});
+
 router.get('/', async (req, res) => {
-  const scopedUserIds = req.user?.role === 'admin' ? null : await getJointUserScope(req.user?.id);
-  const result = await pool.query(
-    `SELECT e.id, e.description, e.total_amount AS "totalAmount", e.installments,
-            e.purchase_date AS "purchaseDate", e.expense_type AS "expenseType", e.recurring, e.notes,
-            u.id AS "userId", u.name AS "userName",
-            c.id AS "cardId", c.name AS "cardName",
-            cat.id AS "categoryId", cat.name AS "categoryName"
-     FROM expenses e
-     JOIN users u ON u.id = e.user_id
-     JOIN cards c ON c.id = e.card_id
-     JOIN categories cat ON cat.id = e.category_id
-     WHERE ($1::uuid[] IS NULL OR e.user_id = ANY($1::uuid[]))
-     ORDER BY e.purchase_date DESC, e.created_at DESC`,
-    [scopedUserIds]
-  );
-  res.json(result.rows);
+  try {
+    const query = querySchema.parse(req.query);
+    const scopedUserIds = req.user?.role === 'admin' ? null : await getJointUserScope(req.user?.id);
+    const result = await pool.query(
+      `SELECT e.id, e.description, e.total_amount AS "totalAmount", e.installments,
+              e.purchase_date AS "purchaseDate", e.expense_type AS "expenseType", e.recurring, e.notes,
+              u.id AS "userId", u.name AS "userName",
+              c.id AS "cardId", c.name AS "cardName",
+              cat.id AS "categoryId", cat.name AS "categoryName"
+       FROM expenses e
+       JOIN users u ON u.id = e.user_id
+       JOIN cards c ON c.id = e.card_id
+       JOIN categories cat ON cat.id = e.category_id
+       WHERE ($1::uuid[] IS NULL OR e.user_id = ANY($1::uuid[]))
+         AND ($2::uuid IS NULL OR e.user_id = $2)
+         AND ($3::uuid IS NULL OR e.card_id = $3)
+       ORDER BY e.purchase_date DESC, e.created_at DESC`,
+      [scopedUserIds, query.userId ?? null, query.cardId ?? null]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    sendError(res, error);
+  }
 });
 
 router.post('/', requireRole('admin'), async (req, res) => {
