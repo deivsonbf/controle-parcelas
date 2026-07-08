@@ -94,7 +94,7 @@ export function InstallmentProjectionPage() {
       <div className="page-header">
         <div>
           <h1>Projecao de parcelas</h1>
-          <p>Veja os meses futuros ate a ultima parcela e a composicao por categoria.</p>
+          <p>Veja 6 meses anteriores e 6 meses futuros em torno do mes selecionado.</p>
         </div>
         <div className="filters">
           <input type="month" value={startMonth} onChange={(event) => setStartMonth(event.target.value)} />
@@ -123,7 +123,7 @@ export function InstallmentProjectionPage() {
         <div className="chart-heading">
           <div>
             <h2>Total por mes</h2>
-            <p>Parcelas futuras ate o ultimo mes projetado</p>
+            <p>Janela de 13 meses com totais e quantidade de parcelas</p>
           </div>
           <div className="chart-heading-icon" aria-hidden="true"><BarChart3 size={21} /></div>
         </div>

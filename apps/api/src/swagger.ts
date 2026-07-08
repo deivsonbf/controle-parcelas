@@ -343,7 +343,7 @@ export const swaggerSpec = swaggerJsdoc({
       '/api/reports/installment-projection': {
         get: {
           tags: ['Reports'],
-          summary: 'Projecao de parcelas por mes e categoria ate a ultima parcela',
+          summary: 'Projecao de parcelas por mes e categoria em janela de 13 meses',
           parameters: [
             { name: 'month', in: 'query', schema: { type: 'string', example: '2026-07' } },
             { name: 'userId', in: 'query', schema: { type: 'string', format: 'uuid' } },
@@ -355,7 +355,10 @@ export const swaggerSpec = swaggerJsdoc({
       '/api/reports/summary': {
         get: {
           tags: ['Reports'],
-          summary: 'Resumo mensal por usuario',
+          summary: 'Resumo mensal por usuario em janela de 13 meses',
+          parameters: [
+            { name: 'month', in: 'query', schema: { type: 'string', example: '2026-07' } }
+          ],
           responses: { '200': { description: 'Totais agrupados por mes' } }
         }
       }

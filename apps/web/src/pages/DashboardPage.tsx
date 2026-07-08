@@ -82,13 +82,13 @@ export function DashboardPage() {
     if (user?.role !== 'user') return;
 
     setSummaryLoading(true);
-    api<MonthlySummary[]>('/reports/summary')
+    api<MonthlySummary[]>(`/reports/summary?month=${month}`)
       .then(setMonthlySummary)
       .catch((error) => {
         toast.error('Erro ao carregar grafico', error instanceof Error ? error.message : undefined);
       })
       .finally(() => setSummaryLoading(false));
-  }, [toast, user?.role]);
+  }, [month, toast, user?.role]);
 
   useEffect(() => {
     if (user?.role !== 'user') return;

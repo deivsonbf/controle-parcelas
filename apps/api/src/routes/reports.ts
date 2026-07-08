@@ -239,7 +239,7 @@ router.get('/installment-projection', async (req, res) => {
     const isAdmin = req.user?.role === 'admin';
     const targetUserId = isAdmin ? query.userId : req.user?.id;
     const targetUserIds = targetUserId ? await getJointUserScope(targetUserId) : null;
-    const startMonth = query.month ?? new Date().toISOString().slice(0, 7);
+    const targetMonth = query.month ?? new Date().toISOString().slice(0, 7);
     const targetCardId = query.cardId ?? null;
 
     const [monthsResult, categoriesResult] = await Promise.all([
@@ -247,17 +247,17 @@ router.get('/installment-projection', async (req, res) => {
         `WITH filtered AS (
            SELECT reference_month, installment_amount
            FROM expense_installments
-           WHERE reference_month >= TO_DATE($1, 'YYYY-MM')
+           WHERE reference_month BETWEEN (TO_DATE($1, 'YYYY-MM') - INTERVAL '6 months')::date
+                                     AND (TO_DATE($1, 'YYYY-MM') + INTERVAL '6 months')::date
              AND ($2::uuid[] IS NULL OR user_id = ANY($2::uuid[]))
              AND ($3::uuid IS NULL OR card_id = $3)
          ),
-         bounds AS (
-           SELECT MAX(reference_month)::date AS max_month
-           FROM filtered
-         ),
          months AS (
-           SELECT generate_series(TO_DATE($1, 'YYYY-MM'), (SELECT max_month FROM bounds), INTERVAL '1 month')::date AS reference_month
-           WHERE (SELECT max_month FROM bounds) IS NOT NULL
+           SELECT generate_series(
+             (TO_DATE($1, 'YYYY-MM') - INTERVAL '6 months')::date,
+             (TO_DATE($1, 'YYYY-MM') + INTERVAL '6 months')::date,
+             INTERVAL '1 month'
+           )::date AS reference_month
          )
          SELECT TO_CHAR(m.reference_month, 'YYYY-MM') AS month,
                 COALESCE(SUM(f.installment_amount), 0)::numeric(12,2) AS total,
@@ -266,7 +266,7 @@ router.get('/installment-projection', async (req, res) => {
          LEFT JOIN filtered f ON f.reference_month = m.reference_month
          GROUP BY m.reference_month
          ORDER BY m.reference_month`,
-        [startMonth, targetUserIds, targetCardId]
+        [targetMonth, targetUserIds, targetCardId]
       ),
       pool.query(
         `SELECT TO_CHAR(reference_month, 'YYYY-MM') AS month,
@@ -276,12 +276,13 @@ router.get('/installment-projection', async (req, res) => {
                 SUM(installment_amount)::numeric(12,2) AS total,
                 COUNT(*)::integer AS installments
          FROM expense_installments
-         WHERE reference_month >= TO_DATE($1, 'YYYY-MM')
+         WHERE reference_month BETWEEN (TO_DATE($1, 'YYYY-MM') - INTERVAL '6 months')::date
+                                   AND (TO_DATE($1, 'YYYY-MM') + INTERVAL '6 months')::date
            AND ($2::uuid[] IS NULL OR user_id = ANY($2::uuid[]))
            AND ($3::uuid IS NULL OR card_id = $3)
          GROUP BY reference_month, category_id, category_name, category_color
          ORDER BY reference_month, total DESC, category_name`,
-        [startMonth, targetUserIds, targetCardId]
+        [targetMonth, targetUserIds, targetCardId]
       )
     ]);
 
@@ -301,8 +302,8 @@ router.get('/installment-projection', async (req, res) => {
     const installments = months.reduce((sum, month) => sum + Number(month.installments), 0);
 
     res.json({
-      startMonth,
-      endMonth: months.at(-1)?.month ?? startMonth,
+      startMonth: months[0]?.month ?? targetMonth,
+      endMonth: months.at(-1)?.month ?? targetMonth,
       grandTotal,
       installments,
       months
@@ -313,37 +314,62 @@ router.get('/installment-projection', async (req, res) => {
 });
 
 router.get('/summary', async (req, res) => {
-  const isAdmin = req.user?.role === 'admin';
-  const scopedUserIds = isAdmin ? null : await getJointUserScope(req.user?.id);
+  try {
+    const query = querySchema.parse(req.query);
+    const targetMonth = query.month ?? new Date().toISOString().slice(0, 7);
+    const isAdmin = req.user?.role === 'admin';
+    const scopedUserIds = isAdmin ? null : await getJointUserScope(req.user?.id);
 
-  if (!isAdmin) {
+    if (!isAdmin) {
+      const result = await pool.query(
+        `WITH months AS (
+           SELECT generate_series(
+             (TO_DATE($4, 'YYYY-MM') - INTERVAL '6 months')::date,
+             (TO_DATE($4, 'YYYY-MM') + INTERVAL '6 months')::date,
+             INTERVAL '1 month'
+           )::date AS reference_month
+         ),
+         totals AS (
+           SELECT reference_month,
+                  SUM(installment_amount)::numeric(12,2) AS total,
+                  COUNT(*)::integer AS installments
+           FROM expense_installments
+           WHERE user_id = ANY($1::uuid[])
+             AND reference_month BETWEEN (TO_DATE($4, 'YYYY-MM') - INTERVAL '6 months')::date
+                                     AND (TO_DATE($4, 'YYYY-MM') + INTERVAL '6 months')::date
+           GROUP BY reference_month
+         )
+         SELECT TO_CHAR(m.reference_month, 'YYYY-MM') AS month,
+                $2::uuid AS "userId",
+                $3::text AS "userName",
+                COALESCE(t.total, 0)::numeric(12,2) AS total,
+                COALESCE(t.installments, 0)::integer AS installments
+         FROM months m
+         LEFT JOIN totals t ON t.reference_month = m.reference_month
+         ORDER BY month DESC`,
+        [scopedUserIds, req.user?.id, req.user?.name, targetMonth]
+      );
+      res.json(result.rows);
+      return;
+    }
+
     const result = await pool.query(
       `SELECT TO_CHAR(reference_month, 'YYYY-MM') AS month,
-              $2::uuid AS "userId",
-              $3::text AS "userName",
+              user_id AS "userId",
+              user_name AS "userName",
               SUM(installment_amount)::numeric(12,2) AS total,
               COUNT(*)::integer AS installments
        FROM expense_installments
-       WHERE user_id = ANY($1::uuid[])
-       GROUP BY reference_month
-       ORDER BY month DESC`,
-      [scopedUserIds, req.user?.id, req.user?.name]
+       WHERE reference_month BETWEEN (TO_DATE($1, 'YYYY-MM') - INTERVAL '6 months')::date
+                                 AND (TO_DATE($1, 'YYYY-MM') + INTERVAL '6 months')::date
+       GROUP BY reference_month, user_id, user_name
+       ORDER BY month DESC, user_name`,
+      [targetMonth]
     );
     res.json(result.rows);
-    return;
+  } catch (error) {
+    sendError(res, error);
   }
-
-  const result = await pool.query(
-    `SELECT TO_CHAR(reference_month, 'YYYY-MM') AS month,
-            user_id AS "userId",
-            user_name AS "userName",
-            SUM(installment_amount)::numeric(12,2) AS total,
-            COUNT(*)::integer AS installments
-     FROM expense_installments
-     GROUP BY reference_month, user_id, user_name
-     ORDER BY month DESC, user_name`
-  );
-  res.json(result.rows);
 });
 
 export default router;
