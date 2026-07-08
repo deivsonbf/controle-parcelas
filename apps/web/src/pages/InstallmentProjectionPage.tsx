@@ -39,6 +39,7 @@ export function InstallmentProjectionPage() {
   const [startMonth, setStartMonth] = useState(new Date().toISOString().slice(0, 7));
   const [selectedUser, setSelectedUser] = useState('');
   const [selectedCard, setSelectedCard] = useState('');
+  const [activeTab, setActiveTab] = useState<'cards' | 'monthly' | 'cardCategories' | 'monthlyCategories'>('cards');
   const [users, setUsers] = useState<User[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
   const [projection, setProjection] = useState<InstallmentProjection | null>(null);
@@ -64,7 +65,7 @@ export function InstallmentProjectionPage() {
     api<InstallmentProjection>(`/reports/installment-projection?${query}`)
       .then(setProjection)
       .catch((error) => {
-        toast.error('Erro ao carregar projecao de parcelas', error instanceof Error ? error.message : undefined);
+        toast.error('Erro ao carregar projeção de parcelas', error instanceof Error ? error.message : undefined);
       })
       .finally(() => setLoading(false));
   }, [selectedCard, selectedUser, startMonth, toast]);
@@ -175,9 +176,11 @@ export function InstallmentProjectionPage() {
                         title={`${monthLabel(month.month)}: ${money(total)}`}
                         aria-label={`${title} de ${monthLabel(month.month)}, total ${money(total)}`}
                       >
-                        <span>{categories.length}</span>
+                        <span>
+                          <strong>{money(total)}</strong>
+                          <small>{categories.length} cat.</small>
+                        </span>
                       </div>
-                      <strong>{money(total)}</strong>
                       <span>{monthLabel(month.month)}</span>
                     </div>
                   );
@@ -190,7 +193,6 @@ export function InstallmentProjectionPage() {
                 <div key={`${title}-${category.name}`}>
                   <span style={{ backgroundColor: category.color }} />
                   <strong>{category.name}</strong>
-                  <small>{money(category.total)} em {category.installments} lancamentos</small>
                 </div>
               ))}
             </div>
@@ -200,31 +202,38 @@ export function InstallmentProjectionPage() {
     );
   }
 
+  const tabs = [
+    { id: 'cards', label: 'Compras' },
+    { id: 'monthly', label: 'Despesas mensais' },
+    { id: 'cardCategories', label: 'Categorias das compras' },
+    { id: 'monthlyCategories', label: 'Categorias mensais' }
+  ] as const;
+
   return (
     <section className="page">
       <div className="page-header">
         <div>
-          <h1>Projecao de parcelas</h1>
-          <p>Veja 6 meses anteriores e 6 meses futuros em torno do mes selecionado.</p>
+          <h1>Projeção</h1>
+          <p>Veja 6 meses anteriores e 6 meses futuros em torno do mês selecionado.</p>
         </div>
         <div className="filters">
           <label className="form-field">
-            Mes de referencia
+            Mês de referência
             <input type="month" value={startMonth} onChange={(event) => setStartMonth(event.target.value)} />
           </label>
           {user?.role === 'admin' && (
             <>
               <label className="form-field">
-                Usuario
+                Usuário
                 <select value={selectedUser} onChange={(event) => setSelectedUser(event.target.value)}>
-                  <option value="">Todos os usuarios</option>
+                  <option value="">Todos os usuários</option>
                   {users.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
                 </select>
               </label>
               <label className="form-field">
-                Cartao
+                Cartão
                 <select value={selectedCard} onChange={(event) => setSelectedCard(event.target.value)}>
-                  <option value="">Todos os cartoes</option>
+                  <option value="">Todos os cartões</option>
                   {cards.map((item) => <option key={item.id} value={item.id}>{item.name} **** {item.lastFour}</option>)}
                 </select>
               </label>
@@ -234,15 +243,30 @@ export function InstallmentProjectionPage() {
       </div>
 
       <div className="stats-grid">
-        <div className="stat-card"><span>Periodo</span><strong>{projection ? `${monthLabel(projection.startMonth)} - ${monthLabel(projection.endMonth)}` : '-'}</strong></div>
-        <div className="stat-card green"><span>Compras no cartao</span><strong>{money(projection?.cardTotal ?? 0)}</strong></div>
+        <div className="stat-card"><span>Período</span><strong>{projection ? `${monthLabel(projection.startMonth)} - ${monthLabel(projection.endMonth)}` : '-'}</strong></div>
+        <div className="stat-card green"><span>Compras no cartão</span><strong>{money(projection?.cardTotal ?? 0)}</strong></div>
         <div className="stat-card amber"><span>Despesas mensais</span><strong>{money(projection?.fixedTotal ?? 0)}</strong></div>
       </div>
 
-      {renderMonthlyBars('Compras no cartao', 'Compras em cartao nos 13 meses da janela', 'cardTotal', 'cardInstallments', highestCardTotal, 'compras')}
-      {renderMonthlyBars('Despesas mensais', 'Despesas recorrentes ou da competencia em cada mes', 'fixedTotal', 'fixedExpenses', highestFixedTotal, 'despesas')}
-      {renderCategoryPies('Categorias do cartao', 'Distribuicao das compras no cartao por categoria', 'cardCategories', cardCategoryTotals, 'Nenhuma categoria de cartao encontrada.')}
-      {renderCategoryPies('Categorias das despesas mensais', 'Distribuicao das despesas mensais por categoria', 'fixedCategories', fixedCategoryTotals, 'Nenhuma categoria de despesa mensal encontrada.')}
+      <div className="projection-tabs" role="tablist" aria-label="Gráficos da projeção">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            className={activeTab === tab.id ? 'active' : ''}
+            onClick={() => setActiveTab(tab.id)}
+            role="tab"
+            aria-selected={activeTab === tab.id}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'cards' && renderMonthlyBars('Compras no cartão', 'Compras em cartão nos 13 meses da janela', 'cardTotal', 'cardInstallments', highestCardTotal, 'compras')}
+      {activeTab === 'monthly' && renderMonthlyBars('Despesas mensais', 'Despesas recorrentes ou da competência em cada mês', 'fixedTotal', 'fixedExpenses', highestFixedTotal, 'despesas')}
+      {activeTab === 'cardCategories' && renderCategoryPies('Categorias das compras', 'Distribuição das compras no cartão por categoria', 'cardCategories', cardCategoryTotals, 'Nenhuma categoria de cartão encontrada.')}
+      {activeTab === 'monthlyCategories' && renderCategoryPies('Categorias das despesas mensais', 'Distribuição das despesas mensais por categoria', 'fixedCategories', fixedCategoryTotals, 'Nenhuma categoria de despesa mensal encontrada.')}
     </section>
   );
 }
