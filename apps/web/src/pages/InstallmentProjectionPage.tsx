@@ -94,6 +94,7 @@ export function InstallmentProjectionPage() {
       <div className="page-header">
         <div>
           <h1>Projecao de parcelas</h1>
+          <p>Veja os meses futuros ate a ultima parcela e a composicao por categoria.</p>
         </div>
         <div className="filters">
           <input type="month" value={startMonth} onChange={(event) => setStartMonth(event.target.value)} />

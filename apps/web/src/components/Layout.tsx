@@ -19,8 +19,8 @@ export function Layout() {
         <div className="brand">
           <CreditCard size={24} />
           <div>
-            <strong>Cartao Parcelado</strong>
-            <span>{isAdmin ? 'Administracao' : 'Utilizador'}</span>
+            <strong>Parcelas</strong>
+            <span>{isAdmin ? 'Painel administrativo' : 'Minha fatura'}</span>
           </div>
         </div>
 
@@ -43,7 +43,7 @@ export function Layout() {
       <main className="content">
         <header className="topbar">
           <div>
-            <span>Logado como</span>
+            <span>Sessao ativa</span>
             <strong>{user?.name}</strong>
           </div>
         </header>

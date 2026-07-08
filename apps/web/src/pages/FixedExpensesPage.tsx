@@ -101,6 +101,7 @@ export function FixedExpensesPage() {
       <div className="page-header">
         <div>
           <h1>Despesas mensais</h1>
+          <p>Controle despesas recorrentes e lancamentos de uma unica competencia.</p>
         </div>
         <div className="filters">
           <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} />

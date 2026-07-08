@@ -68,7 +68,12 @@ export function CardsPage() {
 
   return (
     <section className="page">
-      <div className="page-header"><div><h1>Cartoes</h1></div></div>
+      <div className="page-header">
+        <div>
+          <h1>Cartoes</h1>
+          <p>Configure fechamento, vencimento, titular e identidade visual dos cartoes.</p>
+        </div>
+      </div>
       <form className="panel form-grid" onSubmit={submit}>
         <input placeholder="Nome do cartao" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
         <input placeholder="Ultimos 4 digitos" maxLength={4} value={form.lastFour} onChange={(e) => setForm({ ...form, lastFour: e.target.value })} />

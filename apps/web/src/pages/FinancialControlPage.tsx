@@ -157,6 +157,7 @@ export function FinancialControlPage() {
       <div className="page-header">
         <div>
           <h1>Controle financeiro</h1>
+          <p>Registre rendas, acompanhe pagamentos e veja o saldo previsto do mes.</p>
         </div>
         <div className="filters">
           <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} />

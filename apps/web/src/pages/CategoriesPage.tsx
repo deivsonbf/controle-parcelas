@@ -42,7 +42,12 @@ export function CategoriesPage() {
 
   return (
     <section className="page">
-      <div className="page-header"><div><h1>Categorias</h1></div></div>
+      <div className="page-header">
+        <div>
+          <h1>Categorias</h1>
+          <p>Organize compras e despesas mensais com cores faceis de reconhecer.</p>
+        </div>
+      </div>
       <form className="panel form-grid" onSubmit={submit}>
         <input placeholder="Nome" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
         <input type="color" value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} />

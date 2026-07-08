@@ -104,7 +104,12 @@ export function UsersPage() {
 
   return (
     <section className="page">
-      <div className="page-header"><div><h1>Usuarios</h1></div></div>
+      <div className="page-header">
+        <div>
+          <h1>Usuarios</h1>
+          <p>Gerencie acessos, donos de cartao, utilizadores e contas conjuntas.</p>
+        </div>
+      </div>
       <form className="panel form-grid" onSubmit={submit}>
         <input placeholder="Nome" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
         <input placeholder="E-mail" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />

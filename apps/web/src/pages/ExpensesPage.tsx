@@ -117,6 +117,7 @@ export function ExpensesPage() {
       <div className="page-header">
         <div>
           <h1>Compras</h1>
+          <p>Cadastre compras no cartao e acompanhe como elas entram nas faturas mensais.</p>
         </div>
       </div>
 

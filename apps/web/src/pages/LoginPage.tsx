@@ -34,7 +34,8 @@ export function LoginPage() {
     <main className="login-screen">
       <form className="login-panel" onSubmit={handleSubmit}>
         <div className="login-icon"><Lock size={28} /></div>
-        <h1>Entrar</h1>
+        <h1>Acessar parcelas</h1>
+        <p>Entre para acompanhar faturas, pagamentos e despesas compartilhadas.</p>
         <label>
           E-mail ou usuario
           <input value={email} onChange={(event) => setEmail(event.target.value)} type="text" autoComplete="username" />

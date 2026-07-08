@@ -161,6 +161,7 @@ export function DashboardPage() {
       <div className="page-header">
         <div>
           <h1>Resumo mensal</h1>
+          <p>Acompanhe faturas, despesas mensais e pagamentos do periodo selecionado.</p>
         </div>
         <div className="filters">
           <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} />
@@ -184,8 +185,8 @@ export function DashboardPage() {
       </div>
 
       <div className={`stats-grid${isBuyerOnly ? ' single-stat' : ''}`}>
-        {!isBuyerOnly && <StatCard label="Somatorio geral" value={money(dashboard?.grandTotal ?? 0)} />}
-        <StatCard label={isBuyerOnly ? 'Total das minhas parcelas' : 'Saldo no cartao'} value={money(dashboard?.cardsTotal ?? 0)} tone="green" />
+        {!isBuyerOnly && <StatCard label="Total previsto" value={money(dashboard?.grandTotal ?? 0)} />}
+        <StatCard label={isBuyerOnly ? 'Minhas parcelas' : 'Cartoes do mes'} value={money(dashboard?.cardsTotal ?? 0)} tone="green" />
         {!isBuyerOnly && <StatCard label="Despesas mensais" value={money(dashboard?.fixedExpensesTotal ?? 0)} tone="amber" />}
       </div>
 
@@ -262,7 +263,7 @@ export function DashboardPage() {
         <div className="panel">
           <div className="section-heading">
             <div>
-              <h2>Cartoes</h2>
+              <h2>Cartoes no mes</h2>
               <span>{dashboard?.cards.length ?? 0} cartoes com parcelas no mes selecionado</span>
             </div>
           </div>
