@@ -184,13 +184,23 @@ export type InstallmentProjectionMonth = {
   month: string;
   total: string;
   installments: number;
+  cardTotal: string;
+  cardInstallments: number;
+  fixedTotal: string;
+  fixedExpenses: number;
   categories: InstallmentProjectionCategory[];
+  cardCategories: InstallmentProjectionCategory[];
+  fixedCategories: InstallmentProjectionCategory[];
 };
 
 export type InstallmentProjection = {
   startMonth: string;
   endMonth: string;
   grandTotal: number;
+  cardTotal: number;
+  fixedTotal: number;
   installments: number;
+  cardInstallments: number;
+  fixedExpenses: number;
   months: InstallmentProjectionMonth[];
 };

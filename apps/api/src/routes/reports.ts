@@ -242,29 +242,51 @@ router.get('/installment-projection', async (req, res) => {
     const targetMonth = query.month ?? new Date().toISOString().slice(0, 7);
     const targetCardId = query.cardId ?? null;
 
-    const [monthsResult, categoriesResult] = await Promise.all([
+    const [monthsResult, cardCategoriesResult, fixedCategoriesResult] = await Promise.all([
       pool.query(
-        `WITH filtered AS (
-           SELECT reference_month, installment_amount
-           FROM expense_installments
-           WHERE reference_month BETWEEN (TO_DATE($1, 'YYYY-MM') - INTERVAL '6 months')::date
-                                     AND (TO_DATE($1, 'YYYY-MM') + INTERVAL '6 months')::date
-             AND ($2::uuid[] IS NULL OR user_id = ANY($2::uuid[]))
-             AND ($3::uuid IS NULL OR card_id = $3)
-         ),
-         months AS (
+        `WITH months AS (
            SELECT generate_series(
              (TO_DATE($1, 'YYYY-MM') - INTERVAL '6 months')::date,
              (TO_DATE($1, 'YYYY-MM') + INTERVAL '6 months')::date,
              INTERVAL '1 month'
            )::date AS reference_month
+         ),
+         card_totals AS (
+           SELECT reference_month,
+                  SUM(installment_amount)::numeric(12,2) AS total,
+                  COUNT(*)::integer AS installments
+           FROM expense_installments
+           WHERE reference_month BETWEEN (TO_DATE($1, 'YYYY-MM') - INTERVAL '6 months')::date
+                                     AND (TO_DATE($1, 'YYYY-MM') + INTERVAL '6 months')::date
+             AND ($2::uuid[] IS NULL OR user_id = ANY($2::uuid[]))
+             AND ($3::uuid IS NULL OR card_id = $3)
+           GROUP BY reference_month
+         ),
+         fixed_totals AS (
+           SELECT m.reference_month,
+                  SUM(fe.amount)::numeric(12,2) AS total,
+                  COUNT(*)::integer AS expenses
+           FROM months m
+           JOIN fixed_expenses fe
+             ON fe.active = TRUE
+            AND fe.starts_on <= (m.reference_month + INTERVAL '1 month - 1 day')::date
+            AND (
+              fe.recurring = TRUE
+              OR DATE_TRUNC('month', fe.starts_on)::date = m.reference_month
+            )
+           WHERE ($2::uuid[] IS NULL OR fe.user_id = ANY($2::uuid[]))
+           GROUP BY m.reference_month
          )
          SELECT TO_CHAR(m.reference_month, 'YYYY-MM') AS month,
-                COALESCE(SUM(f.installment_amount), 0)::numeric(12,2) AS total,
-                COUNT(f.installment_amount)::integer AS installments
+                COALESCE(ct.total, 0)::numeric(12,2) AS "cardTotal",
+                COALESCE(ct.installments, 0)::integer AS "cardInstallments",
+                COALESCE(ft.total, 0)::numeric(12,2) AS "fixedTotal",
+                COALESCE(ft.expenses, 0)::integer AS "fixedExpenses",
+                (COALESCE(ct.total, 0) + COALESCE(ft.total, 0))::numeric(12,2) AS total,
+                (COALESCE(ct.installments, 0) + COALESCE(ft.expenses, 0))::integer AS installments
          FROM months m
-         LEFT JOIN filtered f ON f.reference_month = m.reference_month
-         GROUP BY m.reference_month
+         LEFT JOIN card_totals ct ON ct.reference_month = m.reference_month
+         LEFT JOIN fixed_totals ft ON ft.reference_month = m.reference_month
          ORDER BY m.reference_month`,
         [targetMonth, targetUserIds, targetCardId]
       ),
@@ -283,29 +305,74 @@ router.get('/installment-projection', async (req, res) => {
          GROUP BY reference_month, category_id, category_name, category_color
          ORDER BY reference_month, total DESC, category_name`,
         [targetMonth, targetUserIds, targetCardId]
+      ),
+      pool.query(
+        `WITH months AS (
+           SELECT generate_series(
+             (TO_DATE($1, 'YYYY-MM') - INTERVAL '6 months')::date,
+             (TO_DATE($1, 'YYYY-MM') + INTERVAL '6 months')::date,
+             INTERVAL '1 month'
+           )::date AS reference_month
+         )
+         SELECT TO_CHAR(m.reference_month, 'YYYY-MM') AS month,
+                cat.id AS "categoryId",
+                cat.name AS "categoryName",
+                cat.color AS "categoryColor",
+                SUM(fe.amount)::numeric(12,2) AS total,
+                COUNT(*)::integer AS installments
+         FROM months m
+         JOIN fixed_expenses fe
+           ON fe.active = TRUE
+          AND fe.starts_on <= (m.reference_month + INTERVAL '1 month - 1 day')::date
+          AND (
+            fe.recurring = TRUE
+            OR DATE_TRUNC('month', fe.starts_on)::date = m.reference_month
+          )
+         JOIN categories cat ON cat.id = fe.category_id
+         WHERE ($2::uuid[] IS NULL OR fe.user_id = ANY($2::uuid[]))
+         GROUP BY m.reference_month, cat.id, cat.name, cat.color
+         ORDER BY m.reference_month, total DESC, cat.name`,
+        [targetMonth, targetUserIds]
       )
     ]);
 
-    const categoriesByMonth = new Map<string, typeof categoriesResult.rows>();
-    for (const category of categoriesResult.rows) {
-      const items = categoriesByMonth.get(category.month) ?? [];
+    const cardCategoriesByMonth = new Map<string, typeof cardCategoriesResult.rows>();
+    for (const category of cardCategoriesResult.rows) {
+      const items = cardCategoriesByMonth.get(category.month) ?? [];
       items.push(category);
-      categoriesByMonth.set(category.month, items);
+      cardCategoriesByMonth.set(category.month, items);
+    }
+
+    const fixedCategoriesByMonth = new Map<string, typeof fixedCategoriesResult.rows>();
+    for (const category of fixedCategoriesResult.rows) {
+      const items = fixedCategoriesByMonth.get(category.month) ?? [];
+      items.push(category);
+      fixedCategoriesByMonth.set(category.month, items);
     }
 
     const months = monthsResult.rows.map((month) => ({
       ...month,
-      categories: categoriesByMonth.get(month.month) ?? []
+      categories: cardCategoriesByMonth.get(month.month) ?? [],
+      cardCategories: cardCategoriesByMonth.get(month.month) ?? [],
+      fixedCategories: fixedCategoriesByMonth.get(month.month) ?? []
     }));
 
     const grandTotal = Number(months.reduce((sum, month) => sum + Number(month.total), 0).toFixed(2));
     const installments = months.reduce((sum, month) => sum + Number(month.installments), 0);
+    const cardTotal = Number(months.reduce((sum, month) => sum + Number(month.cardTotal), 0).toFixed(2));
+    const fixedTotal = Number(months.reduce((sum, month) => sum + Number(month.fixedTotal), 0).toFixed(2));
+    const cardInstallments = months.reduce((sum, month) => sum + Number(month.cardInstallments), 0);
+    const fixedExpenses = months.reduce((sum, month) => sum + Number(month.fixedExpenses), 0);
 
     res.json({
       startMonth: months[0]?.month ?? targetMonth,
       endMonth: months.at(-1)?.month ?? targetMonth,
       grandTotal,
+      cardTotal,
+      fixedTotal,
       installments,
+      cardInstallments,
+      fixedExpenses,
       months
     });
   } catch (error) {
