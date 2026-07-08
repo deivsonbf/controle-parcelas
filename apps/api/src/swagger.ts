@@ -339,6 +339,18 @@ export const swaggerSpec = swaggerJsdoc({
           responses: { '200': { description: 'Totais do dashboard principal' } }
         }
       },
+      '/api/reports/installment-projection': {
+        get: {
+          tags: ['Reports'],
+          summary: 'Projecao de parcelas por mes e categoria ate a ultima parcela',
+          parameters: [
+            { name: 'month', in: 'query', schema: { type: 'string', example: '2026-07' } },
+            { name: 'userId', in: 'query', schema: { type: 'string', format: 'uuid' } },
+            { name: 'cardId', in: 'query', schema: { type: 'string', format: 'uuid' } }
+          ],
+          responses: { '200': { description: 'Meses projetados com totais e categorias' } }
+        }
+      },
       '/api/reports/summary': {
         get: {
           tags: ['Reports'],

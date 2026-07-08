@@ -520,6 +520,126 @@ th {
   text-transform: capitalize;
 }
 
+.projection-chart-panel {
+  overflow: hidden;
+}
+
+.projection-total-chart {
+  --chart-columns: 1;
+  min-width: max(100%, calc(var(--chart-columns) * 98px));
+  height: 300px;
+  display: grid;
+  grid-template-columns: repeat(var(--chart-columns), minmax(82px, 1fr));
+  align-items: end;
+  gap: 10px;
+  padding: 20px 10px 0;
+  border-bottom: 1px solid #d7deea;
+  background:
+    linear-gradient(to bottom, #e9edf4 1px, transparent 1px);
+  background-size: 100% 25%;
+}
+
+.projection-column {
+  height: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-rows: 44px minmax(0, 1fr) 34px;
+  align-items: end;
+  padding: 0 5px;
+}
+
+.category-projection-chart {
+  --chart-columns: 1;
+  min-width: max(100%, calc(var(--chart-columns) * 102px));
+  height: 320px;
+  display: grid;
+  grid-template-columns: repeat(var(--chart-columns), minmax(84px, 1fr));
+  align-items: end;
+  gap: 12px;
+  padding: 12px 10px 0;
+  border-bottom: 1px solid #d7deea;
+}
+
+.category-month-column {
+  min-width: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) 34px 26px;
+  gap: 4px;
+  align-items: end;
+  text-align: center;
+}
+
+.category-stack {
+  width: min(54px, 76%);
+  height: 230px;
+  display: flex;
+  flex-direction: column-reverse;
+  justify-self: center;
+  overflow: hidden;
+  border: 1px solid #d7deea;
+  border-radius: 7px 7px 0 0;
+  background: #f8fafc;
+}
+
+.category-stack span {
+  height: var(--segment-height);
+  min-height: 5px;
+  background: var(--segment-color);
+}
+
+.category-month-column strong {
+  overflow: hidden;
+  color: #475569;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.category-month-column > span {
+  color: #64748b;
+  font-size: 12px;
+  text-transform: capitalize;
+}
+
+.projection-legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.projection-legend div {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr);
+  gap: 3px 8px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid #e5eaf2;
+  border-radius: 7px;
+  background: #f8fafc;
+}
+
+.projection-legend span {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+}
+
+.projection-legend strong {
+  overflow: hidden;
+  color: #334155;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.projection-legend small {
+  grid-column: 2;
+  color: #64748b;
+  font-size: 12px;
+}
+
 .table-wrap {
   overflow-x: auto;
 }

@@ -228,6 +228,85 @@ router.get('/monthly-installments', async (req, res) => {
   }
 });
 
+router.get('/installment-projection', async (req, res) => {
+  try {
+    const query = querySchema.parse(req.query);
+    const isAdmin = req.user?.role === 'admin';
+    const targetUserId = isAdmin ? query.userId : req.user?.id;
+    const targetUserIds = targetUserId ? await getJointUserScope(targetUserId) : null;
+    const startMonth = query.month ?? new Date().toISOString().slice(0, 7);
+    const targetCardId = query.cardId ?? null;
+
+    const [monthsResult, categoriesResult] = await Promise.all([
+      pool.query(
+        `WITH filtered AS (
+           SELECT reference_month, installment_amount
+           FROM expense_installments
+           WHERE reference_month >= TO_DATE($1, 'YYYY-MM')
+             AND ($2::uuid[] IS NULL OR user_id = ANY($2::uuid[]))
+             AND ($3::uuid IS NULL OR card_id = $3)
+         ),
+         bounds AS (
+           SELECT MAX(reference_month)::date AS max_month
+           FROM filtered
+         ),
+         months AS (
+           SELECT generate_series(TO_DATE($1, 'YYYY-MM'), (SELECT max_month FROM bounds), INTERVAL '1 month')::date AS reference_month
+           WHERE (SELECT max_month FROM bounds) IS NOT NULL
+         )
+         SELECT TO_CHAR(m.reference_month, 'YYYY-MM') AS month,
+                COALESCE(SUM(f.installment_amount), 0)::numeric(12,2) AS total,
+                COUNT(f.installment_amount)::integer AS installments
+         FROM months m
+         LEFT JOIN filtered f ON f.reference_month = m.reference_month
+         GROUP BY m.reference_month
+         ORDER BY m.reference_month`,
+        [startMonth, targetUserIds, targetCardId]
+      ),
+      pool.query(
+        `SELECT TO_CHAR(reference_month, 'YYYY-MM') AS month,
+                category_id AS "categoryId",
+                category_name AS "categoryName",
+                category_color AS "categoryColor",
+                SUM(installment_amount)::numeric(12,2) AS total,
+                COUNT(*)::integer AS installments
+         FROM expense_installments
+         WHERE reference_month >= TO_DATE($1, 'YYYY-MM')
+           AND ($2::uuid[] IS NULL OR user_id = ANY($2::uuid[]))
+           AND ($3::uuid IS NULL OR card_id = $3)
+         GROUP BY reference_month, category_id, category_name, category_color
+         ORDER BY reference_month, total DESC, category_name`,
+        [startMonth, targetUserIds, targetCardId]
+      )
+    ]);
+
+    const categoriesByMonth = new Map<string, typeof categoriesResult.rows>();
+    for (const category of categoriesResult.rows) {
+      const items = categoriesByMonth.get(category.month) ?? [];
+      items.push(category);
+      categoriesByMonth.set(category.month, items);
+    }
+
+    const months = monthsResult.rows.map((month) => ({
+      ...month,
+      categories: categoriesByMonth.get(month.month) ?? []
+    }));
+
+    const grandTotal = months.reduce((sum, month) => sum + Number(month.total), 0);
+    const installments = months.reduce((sum, month) => sum + Number(month.installments), 0);
+
+    res.json({
+      startMonth,
+      endMonth: months.at(-1)?.month ?? startMonth,
+      grandTotal,
+      installments,
+      months
+    });
+  } catch (error) {
+    sendError(res, error);
+  }
+});
+
 router.get('/summary', async (req, res) => {
   const isAdmin = req.user?.role === 'admin';
   const scopedUserIds = isAdmin ? null : await getJointUserScope(req.user?.id);

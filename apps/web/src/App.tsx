@@ -10,6 +10,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { ExpensesPage } from './pages/ExpensesPage';
 import { FinancialControlPage } from './pages/FinancialControlPage';
 import { FixedExpensesPage } from './pages/FixedExpensesPage';
+import { InstallmentProjectionPage } from './pages/InstallmentProjectionPage';
 import { LoginPage } from './pages/LoginPage';
 import { UsersPage } from './pages/UsersPage';
 
@@ -24,6 +25,7 @@ export function App() {
             <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
               <Route index element={<DashboardPage />} />
               <Route path="expenses" element={<ExpensesPage />} />
+              <Route path="installment-projection" element={<InstallmentProjectionPage />} />
               <Route path="financial-control" element={<ProtectedRoute adminOnly><FinancialControlPage /></ProtectedRoute>} />
               <Route path="fixed-expenses" element={<FixedExpensesPage />} />
               <Route path="users" element={<ProtectedRoute adminOnly><UsersPage /></ProtectedRoute>} />

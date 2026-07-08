@@ -170,3 +170,26 @@ export type MonthlySummary = {
   total: string;
   installments: number;
 };
+
+export type InstallmentProjectionCategory = {
+  categoryId: string;
+  categoryName: string;
+  categoryColor: string;
+  total: string;
+  installments: number;
+};
+
+export type InstallmentProjectionMonth = {
+  month: string;
+  total: string;
+  installments: number;
+  categories: InstallmentProjectionCategory[];
+};
+
+export type InstallmentProjection = {
+  startMonth: string;
+  endMonth: string;
+  grandTotal: number;
+  installments: number;
+  months: InstallmentProjectionMonth[];
+};
