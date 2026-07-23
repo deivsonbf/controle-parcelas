@@ -18,7 +18,8 @@ router.get('/dashboard', async (req, res) => {
   try {
     const query = querySchema.parse(req.query);
     const isAdmin = req.user?.role === 'admin';
-    const viewerCardBuyerOnly = !isAdmin && await isCardBuyerOnly(req.user?.id);
+    const selectedUserCardBuyerOnly = isAdmin && query.userId ? await isCardBuyerOnly(query.userId) : false;
+    const viewerCardBuyerOnly = selectedUserCardBuyerOnly || (!isAdmin && await isCardBuyerOnly(req.user?.id));
     const targetUserId = isAdmin ? query.userId : req.user?.id;
     const targetUserIds = targetUserId ? await getJointUserScope(targetUserId) : null;
     const targetMonth = query.month ?? new Date().toISOString().slice(0, 7);
