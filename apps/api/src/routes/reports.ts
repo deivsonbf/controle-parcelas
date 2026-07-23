@@ -239,6 +239,7 @@ router.get('/installment-projection', async (req, res) => {
     const isAdmin = req.user?.role === 'admin';
     const targetUserId = isAdmin ? query.userId : req.user?.id;
     const targetUserIds = targetUserId ? await getJointUserScope(targetUserId) : null;
+    const includeBuyerOnlyCardData = !isAdmin || await isCardBuyerOnly(query.userId);
     const targetMonth = query.month ?? new Date().toISOString().slice(0, 7);
     const targetCardId = query.cardId ?? null;
 
@@ -259,7 +260,7 @@ router.get('/installment-projection', async (req, res) => {
            JOIN users buyer ON buyer.id = ei.user_id
            WHERE ei.reference_month BETWEEN (TO_DATE($1, 'YYYY-MM') - INTERVAL '6 months')::date
                                         AND (TO_DATE($1, 'YYYY-MM') + INTERVAL '6 months')::date
-             AND buyer.card_buyer_only = FALSE
+             AND ($4::boolean = TRUE OR buyer.card_buyer_only = FALSE)
              AND ($2::uuid[] IS NULL OR ei.user_id = ANY($2::uuid[]))
              AND ($3::uuid IS NULL OR ei.card_id = $3)
            GROUP BY ei.reference_month
@@ -292,7 +293,7 @@ router.get('/installment-projection', async (req, res) => {
          LEFT JOIN card_totals ct ON ct.reference_month = m.reference_month
          LEFT JOIN fixed_totals ft ON ft.reference_month = m.reference_month
          ORDER BY m.reference_month`,
-        [targetMonth, targetUserIds, targetCardId]
+        [targetMonth, targetUserIds, targetCardId, includeBuyerOnlyCardData]
       ),
       pool.query(
         `SELECT TO_CHAR(ei.reference_month, 'YYYY-MM') AS month,
@@ -305,12 +306,12 @@ router.get('/installment-projection', async (req, res) => {
          JOIN users buyer ON buyer.id = ei.user_id
          WHERE ei.reference_month BETWEEN (TO_DATE($1, 'YYYY-MM') - INTERVAL '6 months')::date
                                       AND (TO_DATE($1, 'YYYY-MM') + INTERVAL '6 months')::date
-           AND buyer.card_buyer_only = FALSE
+           AND ($4::boolean = TRUE OR buyer.card_buyer_only = FALSE)
            AND ($2::uuid[] IS NULL OR ei.user_id = ANY($2::uuid[]))
            AND ($3::uuid IS NULL OR ei.card_id = $3)
          GROUP BY ei.reference_month, ei.category_id, ei.category_name, ei.category_color
          ORDER BY ei.reference_month, total DESC, ei.category_name`,
-        [targetMonth, targetUserIds, targetCardId]
+        [targetMonth, targetUserIds, targetCardId, includeBuyerOnlyCardData]
       ),
       pool.query(
         `WITH months AS (
@@ -411,7 +412,6 @@ router.get('/summary', async (req, res) => {
            FROM expense_installments ei
            JOIN users buyer ON buyer.id = ei.user_id
            WHERE ei.user_id = ANY($1::uuid[])
-             AND buyer.card_buyer_only = FALSE
              AND ei.reference_month BETWEEN (TO_DATE($4, 'YYYY-MM') - INTERVAL '6 months')::date
                                         AND (TO_DATE($4, 'YYYY-MM') + INTERVAL '6 months')::date
            GROUP BY ei.reference_month
