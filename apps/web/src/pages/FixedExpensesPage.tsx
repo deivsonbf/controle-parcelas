@@ -42,7 +42,7 @@ export function FixedExpensesPage() {
       toast.error('Erro ao carregar categorias', error instanceof Error ? error.message : undefined);
     });
     if (isAdmin) {
-      api<User[]>('/users').then(setUsers).catch((error) => {
+      api<User[]>('/users').then((items) => setUsers(items.filter((item) => !item.cardBuyerOnly))).catch((error) => {
         toast.error('Erro ao carregar usuarios', error instanceof Error ? error.message : undefined);
       });
     }
@@ -138,7 +138,7 @@ export function FixedExpensesPage() {
           <label className="form-field">
             Usuario
             <select value={form.userId} onChange={(e) => setForm({ ...form, userId: e.target.value })} required>
-              <option value="">Selecione</option>
+              <option value="">Selecione um dono</option>
               {users.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
             </select>
           </label>

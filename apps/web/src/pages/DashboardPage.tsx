@@ -32,7 +32,7 @@ export function DashboardPage() {
   useEffect(() => {
     if (user?.role !== 'admin') return;
 
-    api<User[]>('/users').then(setUsers).catch((error) => {
+    api<User[]>('/users').then((items) => setUsers(items.filter((item) => !item.cardBuyerOnly))).catch((error) => {
       toast.error('Erro ao carregar usuarios', error instanceof Error ? error.message : undefined);
     });
 
@@ -172,7 +172,7 @@ export function DashboardPage() {
             <label className="form-field">
               Usuario
               <select value={selectedUser} onChange={(event) => setSelectedUser(event.target.value)}>
-                <option value="">Todos os usuarios</option>
+                <option value="">Todos os donos</option>
                 {users.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
               </select>
             </label>

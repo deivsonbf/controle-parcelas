@@ -48,7 +48,7 @@ export function InstallmentProjectionPage() {
   useEffect(() => {
     if (user?.role !== 'admin') return;
 
-    api<User[]>('/users').then(setUsers).catch((error) => {
+    api<User[]>('/users').then((items) => setUsers(items.filter((item) => !item.cardBuyerOnly))).catch((error) => {
       toast.error('Erro ao carregar usuarios', error instanceof Error ? error.message : undefined);
     });
     api<Card[]>('/cards').then(setCards).catch((error) => {
@@ -226,7 +226,7 @@ export function InstallmentProjectionPage() {
               <label className="form-field">
                 Usuário
                 <select value={selectedUser} onChange={(event) => setSelectedUser(event.target.value)}>
-                  <option value="">Todos os usuários</option>
+                  <option value="">Todos os donos</option>
                   {users.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
                 </select>
               </label>

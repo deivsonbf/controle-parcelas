@@ -52,7 +52,7 @@ export function ExpensesPage() {
       toast.error('Erro ao carregar categorias', error instanceof Error ? error.message : undefined);
     });
     if (isAdmin) {
-      api<User[]>('/users').then(setUsers).catch((error) => {
+      api<User[]>('/users').then((items) => setUsers(items.filter((item) => !item.cardBuyerOnly))).catch((error) => {
         toast.error('Erro ao carregar usuarios', error instanceof Error ? error.message : undefined);
       });
       api<Card[]>('/cards').then(setCards).catch((error) => {
@@ -130,7 +130,7 @@ export function ExpensesPage() {
             <label className="form-field">
               Usuario
               <select value={selectedUser} onChange={(event) => setSelectedUser(event.target.value)}>
-                <option value="">Todos os usuarios</option>
+                <option value="">Todos os donos</option>
                 {users.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
               </select>
             </label>
@@ -184,7 +184,7 @@ export function ExpensesPage() {
           <label className="form-field">
             Usuario
             <select value={form.userId} onChange={(e) => setForm({ ...form, userId: e.target.value })} required>
-              <option value="">Selecione</option>
+              <option value="">Selecione um dono</option>
               {users.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
             </select>
           </label>

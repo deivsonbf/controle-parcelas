@@ -36,7 +36,7 @@ export function FinancialControlPage() {
         api<User[]>('/users')
       ]);
       setSummary(summaryResult);
-      setUsers(usersResult);
+      setUsers(usersResult.filter((item) => !item.cardBuyerOnly));
     } catch (error) {
       toast.error('Erro ao carregar controle financeiro', error instanceof Error ? error.message : undefined);
     } finally {
@@ -167,7 +167,7 @@ export function FinancialControlPage() {
           <label className="form-field">
             Usuario
             <select value={selectedUser} onChange={(event) => setSelectedUser(event.target.value)}>
-              <option value="">Todos os usuarios</option>
+              <option value="">Todos os donos</option>
               {users.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
             </select>
           </label>
@@ -190,7 +190,7 @@ export function FinancialControlPage() {
         <label className="form-field">
           Usuario da renda
           <select value={incomeForm.userId} onChange={(event) => setIncomeForm({ ...incomeForm, userId: event.target.value })} required>
-            <option value="">Selecione</option>
+            <option value="">Selecione um dono</option>
             {users.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
           </select>
         </label>
