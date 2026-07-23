@@ -11,7 +11,7 @@ router.use(requireAuth, requireRole('admin'));
 const userSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
-  password: z.string().min(8).optional(),
+  password: z.string().min(6).optional(),
   role: z.enum(['admin', 'user']).default('user'),
   active: z.boolean().default(true),
   cardBuyerOnly: z.boolean().default(false),
@@ -36,7 +36,7 @@ router.get('/', async (_req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const body = userSchema.extend({ password: z.string().min(8) }).parse(req.body);
+    const body = userSchema.extend({ password: z.string().min(6) }).parse(req.body);
     const passwordHash = await hashPassword(body.password);
     const result = await pool.query(
       `INSERT INTO users (name, email, password_hash, role, active, card_buyer_only, joint_account)

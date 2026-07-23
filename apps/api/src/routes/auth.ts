@@ -8,7 +8,7 @@ import { pool } from '../db/pool.js';
 const router = Router();
 const loginSchema = z.object({
   email: z.string().trim().min(2),
-  password: z.string().min(8)
+  password: z.string().min(6)
 });
 
 /**
