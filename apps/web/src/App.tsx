@@ -5,6 +5,7 @@ import { InstallAppPrompt } from './components/InstallAppPrompt';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { CardsPage } from './pages/CardsPage';
+import { CardInvoicesPage } from './pages/CardInvoicesPage';
 import { CategoriesPage } from './pages/CategoriesPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ExpensesPage } from './pages/ExpensesPage';
@@ -24,6 +25,7 @@ export function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
               <Route index element={<DashboardPage />} />
+              <Route path="card-invoices" element={<CardInvoicesPage />} />
               <Route path="expenses" element={<ExpensesPage />} />
               <Route path="installment-projection" element={<InstallmentProjectionPage />} />
               <Route path="financial-control" element={<ProtectedRoute adminOnly><FinancialControlPage /></ProtectedRoute>} />

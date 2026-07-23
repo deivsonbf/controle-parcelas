@@ -123,6 +123,29 @@ export type MonthlyResponse = {
   items: MonthlyInstallment[];
 };
 
+export type CardInvoice = {
+  cardId: string;
+  cardName: string;
+  cardLastFour: string;
+  ownerUserId: string;
+  ownerUserName: string;
+  dueDay: number;
+  closingDay: number;
+  total: string;
+  installments: number;
+  oneTimeTotal: string;
+  oneTimeCount: number;
+  installmentTotal: string;
+  installmentCount: number;
+  items: MonthlyInstallment[];
+};
+
+export type CardInvoicesResponse = {
+  month: string;
+  grandTotal: number;
+  cards: CardInvoice[];
+};
+
 export type DashboardCardTotal = {
   cardId: string;
   cardName: string;
