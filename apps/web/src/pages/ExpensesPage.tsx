@@ -225,6 +225,7 @@ export function ExpensesPage() {
                 <th>Categoria</th>
                 <th>Tipo</th>
                 <th>Recorrente</th>
+                <th>Observacoes</th>
                 <th>Total</th>
                 <th>Parcelas</th>
                 {isAdmin && <th aria-label="Acoes" />}
@@ -240,6 +241,7 @@ export function ExpensesPage() {
                   <td>{item.categoryName}</td>
                   <td><span className={`expense-type-tag ${item.expenseType}`}>{expenseTypeLabels[item.expenseType]}</span></td>
                   <td><span className={`status-pill ${item.recurring ? 'active' : 'inactive'}`}>{item.recurring ? 'Sim' : 'Nao'}</span></td>
+                  <td className="notes-cell">{item.notes || '-'}</td>
                   <td>{money(Number(item.totalAmount))}</td>
                   <td>{item.installments}x</td>
                   {isAdmin && (

@@ -1019,6 +1019,12 @@ tbody tr:hover {
   text-align: right;
 }
 
+.notes-cell {
+  max-width: 240px;
+  color: #475569;
+  overflow-wrap: anywhere;
+}
+
 .table-actions {
   display: flex;
   justify-content: flex-end;
