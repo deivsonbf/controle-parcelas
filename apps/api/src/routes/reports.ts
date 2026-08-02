@@ -361,6 +361,103 @@ router.get('/card-invoices', async (req, res) => {
   }
 });
 
+router.get('/third-party-card-invoices', async (req, res) => {
+  try {
+    if (req.user?.role !== 'admin') {
+      res.status(403).json({ message: 'Acesso restrito ao administrador' });
+      return;
+    }
+
+    const query = querySchema.parse(req.query);
+    const targetMonth = query.month ?? new Date().toISOString().slice(0, 7);
+
+    const [cardsResult, installmentsResult] = await Promise.all([
+      pool.query(
+        `SELECT c.id AS "cardId",
+                c.name AS "cardName",
+                c.last_four AS "cardLastFour",
+                c.owner_user_id AS "ownerUserId",
+                owner.name AS "ownerUserName",
+                c.due_day AS "dueDay",
+                c.closing_day AS "closingDay"
+         FROM cards c
+         JOIN users owner ON owner.id = c.owner_user_id
+         WHERE c.active = TRUE
+           AND owner.card_buyer_only = FALSE
+         ORDER BY c.name, c.last_four`
+      ),
+      pool.query(
+        `SELECT ei.expense_id AS "expenseId",
+                ei.installment_number AS "installmentNumber",
+                ei.total_installments AS "totalInstallments",
+                ei.installment_amount AS "installmentAmount",
+                TO_CHAR(ei.reference_month, 'YYYY-MM-DD') AS "referenceMonth",
+                TO_CHAR(ei.invoice_month, 'YYYY-MM-DD') AS "invoiceMonth",
+                TO_CHAR(ei.payment_date, 'YYYY-MM-DD') AS "paymentDate",
+                ei.description,
+                ei.expense_type AS "expenseType",
+                e.recurring,
+                e.notes,
+                ei.total_amount AS "totalAmount",
+                TO_CHAR(ei.purchase_date, 'YYYY-MM-DD') AS "purchaseDate",
+                ei.user_id AS "userId",
+                ei.user_name AS "userName",
+                ei.card_id AS "cardId",
+                ei.card_name AS "cardName",
+                ei.card_last_four AS "cardLastFour",
+                ei.category_id AS "categoryId",
+                ei.category_name AS "categoryName",
+                ei.category_color AS "categoryColor"
+         FROM expense_installments ei
+         JOIN expenses e ON e.id = ei.expense_id
+         JOIN cards c ON c.id = ei.card_id
+         JOIN users buyer ON buyer.id = ei.user_id
+         WHERE ei.reference_month = TO_DATE($1, 'YYYY-MM')
+           AND c.owner_user_id IS NOT NULL
+           AND ei.user_id <> c.owner_user_id
+           AND buyer.card_buyer_only = TRUE
+         ORDER BY ei.card_name, ei.user_name, ei.purchase_date DESC, ei.description, ei.installment_number`,
+        [targetMonth]
+      )
+    ]);
+
+    const installmentsByCard = new Map<string, typeof installmentsResult.rows>();
+    for (const installment of installmentsResult.rows) {
+      const items = installmentsByCard.get(installment.cardId) ?? [];
+      items.push(installment);
+      installmentsByCard.set(installment.cardId, items);
+    }
+
+    const cards = cardsResult.rows.map((card) => {
+      const items = installmentsByCard.get(card.cardId) ?? [];
+      const oneTimeItems = items.filter((item) => Number(item.totalInstallments) === 1);
+      const installmentItems = items.filter((item) => Number(item.totalInstallments) > 1);
+      const total = items.reduce((sum, item) => sum + Number(item.installmentAmount), 0);
+      const oneTimeTotal = oneTimeItems.reduce((sum, item) => sum + Number(item.installmentAmount), 0);
+      const installmentTotal = installmentItems.reduce((sum, item) => sum + Number(item.installmentAmount), 0);
+
+      return {
+        ...card,
+        total: total.toFixed(2),
+        grossTotal: total.toFixed(2),
+        invoicePaymentsTotal: '0.00',
+        installments: items.length,
+        oneTimeTotal: oneTimeTotal.toFixed(2),
+        oneTimeCount: oneTimeItems.length,
+        installmentTotal: installmentTotal.toFixed(2),
+        installmentCount: installmentItems.length,
+        credits: [],
+        items
+      };
+    });
+
+    const grandTotal = cards.reduce((sum, card) => sum + Number(card.total), 0);
+    res.json({ month: targetMonth, grandTotal, cards });
+  } catch (error) {
+    sendError(res, error);
+  }
+});
+
 router.get('/installment-projection', async (req, res) => {
   try {
     const query = querySchema.parse(req.query);

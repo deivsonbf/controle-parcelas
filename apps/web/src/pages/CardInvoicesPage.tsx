@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { Pencil, Receipt, Trash2, X } from 'lucide-react';
 import { api } from '../services/api';
-import type { CardInvoice, CardInvoicesResponse, Category, ExpenseType, InvoiceCredit, MonthlyInstallment } from '../types/api';
+import type { CardInvoice, CardInvoicesResponse, Category, ExpenseType, InvoiceCredit, MonthlyInstallment, User } from '../types/api';
 import { currencyInputToNumber, formatCurrencyInput, formatDate, money } from '../utils';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -26,6 +26,7 @@ const emptyPurchaseForm = {
   purchaseDate: new Date().toISOString().slice(0, 10),
   expenseType: 'card' as ExpenseType,
   recurring: false,
+  userId: '',
   categoryId: '',
   notes: ''
 };
@@ -58,6 +59,8 @@ type InvoicePurchaseFormProps = {
   title: string;
   invoice: CardInvoice;
   categories: Category[];
+  users?: User[];
+  showUserSelect?: boolean;
   submitting: boolean;
   form: PurchaseFormState;
   submitLabel: string;
@@ -70,6 +73,8 @@ function InvoicePurchaseForm({
   title,
   invoice,
   categories,
+  users = [],
+  showUserSelect = false,
   submitting,
   form,
   submitLabel,
@@ -84,6 +89,15 @@ function InvoicePurchaseForm({
         <strong>{invoice.cardName} **** {invoice.cardLastFour}</strong>
         <small>Dono: {invoice.ownerUserName}</small>
       </div>
+      {showUserSelect && (
+        <label className="form-field">
+          Utilizador
+          <select value={form.userId} onChange={(event) => onChange({ ...form, userId: event.target.value })} required>
+            <option value="">Selecione</option>
+            {users.map((buyer) => <option key={buyer.id} value={buyer.id}>{buyer.name}</option>)}
+          </select>
+        </label>
+      )}
       <label className="form-field">
         Descrição
         <input placeholder="Ex.: Mercado, app, farmácia" value={form.description} onChange={(event) => onChange({ ...form, description: event.target.value })} required />
@@ -326,6 +340,7 @@ function CardInvoicePanel({
   invoice,
   selectedIds,
   admin,
+  emptyMessage,
   onToggle,
   onToggleAll,
   onEdit,
@@ -334,6 +349,7 @@ function CardInvoicePanel({
   invoice: CardInvoice;
   selectedIds: string[];
   admin: boolean;
+  emptyMessage: string;
   onToggle: (expenseId: string) => void;
   onToggleAll: (expenseIds: string[]) => void;
   onEdit: (item: MonthlyInstallment) => void;
@@ -391,19 +407,25 @@ function CardInvoicePanel({
           onDelete={onDelete}
         />
       ) : (
-        <p className="empty-state">Nenhuma compra do dono neste cartão para o mês selecionado.</p>
+        <p className="empty-state">{emptyMessage}</p>
       )}
     </div>
   );
 }
 
-export function CardInvoicesPage() {
+type CardInvoicesPageProps = {
+  mode?: 'owners' | 'thirdParty';
+};
+
+export function CardInvoicesPage({ mode = 'owners' }: CardInvoicesPageProps) {
   const { user } = useAuth();
   const toast = useToast();
+  const isThirdParty = mode === 'thirdParty';
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
   const [data, setData] = useState<CardInvoicesResponse | null>(null);
   const [activeCardId, setActiveCardId] = useState('');
   const [categories, setCategories] = useState<Category[]>([]);
+  const [buyers, setBuyers] = useState<User[]>([]);
   const [purchaseForm, setPurchaseForm] = useState(emptyPurchaseForm);
   const [editingExpenseId, setEditingExpenseId] = useState('');
   const [editForm, setEditForm] = useState(emptyPurchaseForm);
@@ -414,10 +436,10 @@ export function CardInvoicesPage() {
   const isAdmin = user?.role === 'admin';
 
   function loadInvoices() {
-    if (user?.cardBuyerOnly) return;
+    if (!isThirdParty && user?.cardBuyerOnly) return;
 
     setLoading(true);
-    api<CardInvoicesResponse>(`/reports/card-invoices?month=${month}`)
+    api<CardInvoicesResponse>(`/reports/${isThirdParty ? 'third-party-card-invoices' : 'card-invoices'}?month=${month}`)
       .then((response) => {
         setData(response);
         setActiveCardId((current) => {
@@ -431,7 +453,7 @@ export function CardInvoicesPage() {
       .finally(() => setLoading(false));
   }
 
-  useEffect(loadInvoices, [month, toast, user?.cardBuyerOnly]);
+  useEffect(loadInvoices, [isThirdParty, month, toast, user?.cardBuyerOnly]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -441,7 +463,15 @@ export function CardInvoicesPage() {
       .catch((error) => {
         toast.error('Erro ao carregar categorias', error instanceof Error ? error.message : undefined);
       });
-  }, [isAdmin, toast]);
+
+    if (isThirdParty) {
+      api<User[]>('/users')
+        .then((items) => setBuyers(items.filter((item) => item.cardBuyerOnly)))
+        .catch((error) => {
+          toast.error('Erro ao carregar utilizadores', error instanceof Error ? error.message : undefined);
+        });
+    }
+  }, [isAdmin, isThirdParty, toast]);
 
   useEffect(() => {
     setSelectedIds([]);
@@ -479,7 +509,7 @@ export function CardInvoicesPage() {
         body: JSON.stringify({
           ...purchaseForm,
           totalAmount: currencyInputToNumber(purchaseForm.totalAmount),
-          userId: activeInvoice.ownerUserId,
+          userId: isThirdParty ? purchaseForm.userId : activeInvoice.ownerUserId,
           cardId: activeInvoice.cardId
         })
       });
@@ -502,6 +532,7 @@ export function CardInvoicesPage() {
       purchaseDate: item.purchaseDate.slice(0, 10),
       expenseType: item.expenseType,
       recurring: item.recurring ?? false,
+      userId: item.userId,
       categoryId: item.categoryId,
       notes: item.notes ?? ''
     });
@@ -519,7 +550,7 @@ export function CardInvoicesPage() {
         body: JSON.stringify({
           ...editForm,
           totalAmount: currencyInputToNumber(editForm.totalAmount),
-          userId: activeInvoice.ownerUserId,
+          userId: isThirdParty ? editForm.userId : activeInvoice.ownerUserId,
           cardId: activeInvoice.cardId
         })
       });
@@ -558,6 +589,7 @@ export function CardInvoicesPage() {
     if (selectedIds.length === 0) return;
 
     const body: Record<string, unknown> = { ids: selectedIds };
+    if (isThirdParty) body.preserveUserId = true;
     if (bulkForm.targetCardId) body.targetCardId = bulkForm.targetCardId;
     if (bulkForm.categoryId) body.categoryId = bulkForm.categoryId;
     if (bulkForm.expenseType) body.expenseType = bulkForm.expenseType;
@@ -565,7 +597,7 @@ export function CardInvoicesPage() {
     if (bulkForm.recurring) body.recurring = bulkForm.recurring === 'true';
     if (bulkForm.notes.trim()) body.notes = bulkForm.notes.trim();
 
-    if (Object.keys(body).length === 1) {
+    if (!bulkForm.targetCardId && !bulkForm.categoryId && !bulkForm.expenseType && !bulkForm.purchaseDate && !bulkForm.recurring && !bulkForm.notes.trim()) {
       toast.info('Nenhuma alteração informada');
       return;
     }
@@ -587,7 +619,7 @@ export function CardInvoicesPage() {
     }
   }
 
-  if (user?.cardBuyerOnly) {
+  if (!isThirdParty && user?.cardBuyerOnly) {
     return (
       <section className="page">
         <div className="panel">
@@ -598,12 +630,24 @@ export function CardInvoicesPage() {
     );
   }
 
+  const pageTitle = isThirdParty ? 'Compras de terceiros' : 'Fatura do cartao';
+  const pageDescription = isThirdParty
+    ? 'Acompanhe apenas compras de utilizadores que nao sao donos do cartao, separadas por mes e por cartao.'
+    : 'Acompanhe as compras mensais dos donos, separadas por cartao e por tipo de lancamento.';
+  const countLabel = isThirdParty ? 'Compras de terceiros' : 'Compras dos donos';
+  const emptyCardMessage = isThirdParty
+    ? 'Nenhuma compra de terceiro encontrada para este mes.'
+    : 'Nenhum cartao de dono encontrado para acompanhar.';
+  const emptyInvoiceMessage = isThirdParty
+    ? 'Nenhuma compra de terceiro neste cartao para o mes selecionado.'
+    : 'Nenhuma compra do dono neste cartao para o mes selecionado.';
+
   return (
     <section className="page">
       <div className="page-header">
         <div>
-          <h1>Fatura do cartão</h1>
-          <p>Acompanhe as compras mensais dos donos, separadas por cartão e por tipo de lançamento.</p>
+          <h1>{pageTitle}</h1>
+          <p>{pageDescription}</p>
         </div>
         <div className="filters">
           <label className="form-field">
@@ -623,7 +667,7 @@ export function CardInvoicesPage() {
           <strong>{money(data?.grandTotal ?? 0)}</strong>
         </div>
         <div className="stat-card amber">
-          <span>Compras dos donos</span>
+          <span>{countLabel}</span>
           <strong>{data?.cards.reduce((sum, card) => sum + card.installments, 0) ?? 0}</strong>
         </div>
       </div>
@@ -654,6 +698,8 @@ export function CardInvoicesPage() {
                 title="Editar compra"
                 invoice={activeInvoice}
                 categories={categories}
+                users={buyers}
+                showUserSelect={isThirdParty}
                 submitting={submitting}
                 form={editForm}
                 submitLabel="Salvar alterações"
@@ -669,6 +715,8 @@ export function CardInvoicesPage() {
                 title="Compra direta no cartão"
                 invoice={activeInvoice}
                 categories={categories}
+                users={buyers}
+                showUserSelect={isThirdParty}
                 submitting={submitting}
                 form={purchaseForm}
                 submitLabel="Adicionar compra"
@@ -697,6 +745,7 @@ export function CardInvoicesPage() {
             invoice={activeInvoice}
             selectedIds={selectedIds}
             admin={isAdmin}
+            emptyMessage={emptyInvoiceMessage}
             onToggle={toggleSelection}
             onToggleAll={toggleAll}
             onEdit={startEdit}
@@ -706,9 +755,10 @@ export function CardInvoicesPage() {
       ) : (
         <div className="panel empty-state">
           <Receipt size={20} />
-          Nenhum cartão de dono encontrado para acompanhar.
+          {emptyCardMessage}
         </div>
       )}
     </section>
   );
 }
+

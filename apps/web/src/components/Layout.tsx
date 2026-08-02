@@ -27,6 +27,7 @@ export function Layout() {
         <nav>
           <NavLink to="/"><Home size={18} />Resumo</NavLink>
           {!user?.cardBuyerOnly && <NavLink to="/card-invoices"><CreditCard size={18} />Fatura do cartão</NavLink>}
+          {isAdmin && <NavLink to="/third-party-card-invoices"><Receipt size={18} />Compras de terceiros</NavLink>}
           <NavLink to="/expenses"><Receipt size={18} />Compras</NavLink>
           <NavLink to="/installment-projection"><BarChart3 size={18} />Projeção</NavLink>
           {isAdmin && <NavLink to="/financial-control"><WalletCards size={18} />Controle financeiro</NavLink>}

@@ -37,6 +37,7 @@ const bulkUpdateSchema = z.object({
   expenseType: z.enum(['fixed', 'card', 'unplanned']).optional(),
   purchaseDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   recurring: z.boolean().optional(),
+  preserveUserId: z.boolean().optional(),
   notes: z.string().optional().nullable()
 }).refine((body) => (
   body.targetCardId ||
@@ -114,6 +115,7 @@ async function updateExpensesInBulk(req: Request, res: Response) {
        SET card_id = COALESCE($2::uuid, e.card_id),
            user_id = CASE
              WHEN $2::uuid IS NULL THEN e.user_id
+             WHEN $9::boolean = TRUE THEN e.user_id
              ELSE COALESCE((SELECT owner_user_id FROM target_card), e.user_id)
            END,
            category_id = COALESCE($3::uuid, e.category_id),
@@ -132,7 +134,8 @@ async function updateExpensesInBulk(req: Request, res: Response) {
         body.purchaseDate ?? null,
         body.recurring ?? null,
         body.notes !== undefined,
-        body.notes ?? null
+        body.notes ?? null,
+        body.preserveUserId ?? false
       ]
     );
     res.json({ updated: result.rowCount, ids: result.rows.map((row) => row.id) });

@@ -26,6 +26,7 @@ export function App() {
             <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
               <Route index element={<DashboardPage />} />
               <Route path="card-invoices" element={<CardInvoicesPage />} />
+              <Route path="third-party-card-invoices" element={<ProtectedRoute adminOnly><CardInvoicesPage mode="thirdParty" /></ProtectedRoute>} />
               <Route path="expenses" element={<ExpensesPage />} />
               <Route path="installment-projection" element={<InstallmentProjectionPage />} />
               <Route path="financial-control" element={<ProtectedRoute adminOnly><FinancialControlPage /></ProtectedRoute>} />
