@@ -1,14 +1,31 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { FormEvent, useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { Receipt } from 'lucide-react';
 import { api } from '../services/api';
-import type { CardInvoice, CardInvoicesResponse, MonthlyInstallment } from '../types/api';
-import { formatDate, money } from '../utils';
+import type { CardInvoice, CardInvoicesResponse, Category, ExpenseType, MonthlyInstallment } from '../types/api';
+import { currencyInputToNumber, formatCurrencyInput, formatDate, money } from '../utils';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 
 const expenseKindLabel = {
   oneTime: 'À vista',
   installment: 'Parcelado'
+};
+
+const expenseTypeLabels: Record<ExpenseType, string> = {
+  fixed: 'Fixa',
+  card: 'Cartões',
+  unplanned: 'Não planejada'
+};
+
+const emptyPurchaseForm = {
+  description: '',
+  totalAmount: '',
+  installments: 1,
+  purchaseDate: new Date().toISOString().slice(0, 10),
+  expenseType: 'card' as ExpenseType,
+  recurring: false,
+  categoryId: '',
+  notes: ''
 };
 
 function categoryStyle(color: string) {
@@ -101,15 +118,87 @@ function CardInvoicePanel({ invoice }: { invoice: CardInvoice }) {
   );
 }
 
+type InvoicePurchaseFormProps = {
+  invoice: CardInvoice;
+  categories: Category[];
+  submitting: boolean;
+  form: typeof emptyPurchaseForm;
+  onChange: (form: typeof emptyPurchaseForm) => void;
+  onSubmit: (event: FormEvent) => void;
+};
+
+function InvoicePurchaseForm({ invoice, categories, submitting, form, onChange, onSubmit }: InvoicePurchaseFormProps) {
+  return (
+    <form className="panel form-grid invoice-purchase-form" onSubmit={onSubmit}>
+      <div className="form-context">
+        <span>Compra direta no cartão</span>
+        <strong>{invoice.cardName} **** {invoice.cardLastFour}</strong>
+        <small>Dono: {invoice.ownerUserName}</small>
+      </div>
+      <label className="form-field">
+        Descrição
+        <input placeholder="Ex.: Mercado, app, farmácia" value={form.description} onChange={(event) => onChange({ ...form, description: event.target.value })} required />
+      </label>
+      <label className="form-field">
+        Valor total
+        <input
+          inputMode="numeric"
+          placeholder="R$ 0,00"
+          value={form.totalAmount}
+          onChange={(event) => onChange({ ...form, totalAmount: formatCurrencyInput(event.target.value) })}
+          required
+        />
+      </label>
+      <label className="form-field">
+        Parcelas
+        <input type="number" min={1} max={120} value={form.installments} onChange={(event) => onChange({ ...form, installments: Number(event.target.value) })} required />
+      </label>
+      <label className="form-field">
+        Data da compra
+        <input type="date" value={form.purchaseDate} onChange={(event) => onChange({ ...form, purchaseDate: event.target.value })} required />
+      </label>
+      <label className="form-field">
+        Tipo de despesa
+        <select value={form.expenseType} onChange={(event) => onChange({ ...form, expenseType: event.target.value as ExpenseType })} required>
+          {Object.entries(expenseTypeLabels).map(([value, label]) => (
+            <option key={value} value={value}>{label}</option>
+          ))}
+        </select>
+      </label>
+      <label className="form-field">
+        Categoria
+        <select value={form.categoryId} onChange={(event) => onChange({ ...form, categoryId: event.target.value })} required>
+          <option value="">Selecione</option>
+          {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+        </select>
+      </label>
+      <label className="form-field">
+        Observações
+        <input placeholder="Opcional" value={form.notes} onChange={(event) => onChange({ ...form, notes: event.target.value })} />
+      </label>
+      <label className="checkbox-field">
+        <input type="checkbox" checked={form.recurring} onChange={(event) => onChange({ ...form, recurring: event.target.checked })} />
+        Recorrente
+      </label>
+      <button className="primary-button" type="submit" disabled={submitting}>
+        {submitting ? 'Salvando...' : 'Adicionar compra'}
+      </button>
+    </form>
+  );
+}
+
 export function CardInvoicesPage() {
   const { user } = useAuth();
   const toast = useToast();
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
   const [data, setData] = useState<CardInvoicesResponse | null>(null);
   const [activeCardId, setActiveCardId] = useState('');
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [purchaseForm, setPurchaseForm] = useState(emptyPurchaseForm);
   const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
+  function loadInvoices() {
     if (user?.cardBuyerOnly) return;
 
     setLoading(true);
@@ -125,12 +214,49 @@ export function CardInvoicesPage() {
         toast.error('Erro ao carregar faturas do cartão', error instanceof Error ? error.message : undefined);
       })
       .finally(() => setLoading(false));
-  }, [month, toast, user?.cardBuyerOnly]);
+  }
+
+  useEffect(loadInvoices, [month, toast, user?.cardBuyerOnly]);
+
+  useEffect(() => {
+    if (user?.role !== 'admin') return;
+
+    api<Category[]>('/categories')
+      .then(setCategories)
+      .catch((error) => {
+        toast.error('Erro ao carregar categorias', error instanceof Error ? error.message : undefined);
+      });
+  }, [toast, user?.role]);
 
   const activeInvoice = useMemo(
     () => data?.cards.find((card) => card.cardId === activeCardId) ?? data?.cards[0] ?? null,
     [activeCardId, data?.cards]
   );
+
+  async function submitPurchase(event: FormEvent) {
+    event.preventDefault();
+    if (!activeInvoice) return;
+
+    setSubmitting(true);
+    try {
+      await api('/expenses', {
+        method: 'POST',
+        body: JSON.stringify({
+          ...purchaseForm,
+          totalAmount: currencyInputToNumber(purchaseForm.totalAmount),
+          userId: activeInvoice.ownerUserId,
+          cardId: activeInvoice.cardId
+        })
+      });
+      toast.success('Compra adicionada', 'A fatura foi recalculada usando a regra de fechamento do cartão.');
+      setPurchaseForm(emptyPurchaseForm);
+      loadInvoices();
+    } catch (error) {
+      toast.error('Erro ao adicionar compra', error instanceof Error ? error.message : undefined);
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   if (user?.cardBuyerOnly) {
     return (
@@ -192,6 +318,17 @@ export function CardInvoicesPage() {
               </button>
             ))}
           </div>
+
+          {user?.role === 'admin' && (
+            <InvoicePurchaseForm
+              invoice={activeInvoice}
+              categories={categories}
+              submitting={submitting}
+              form={purchaseForm}
+              onChange={setPurchaseForm}
+              onSubmit={submitPurchase}
+            />
+          )}
 
           <CardInvoicePanel invoice={activeInvoice} />
         </>

@@ -908,6 +908,39 @@ tbody tr:hover {
   gap: 18px;
 }
 
+.invoice-purchase-form {
+  grid-template-columns: minmax(210px, 1.2fr) repeat(4, minmax(130px, 1fr));
+}
+
+.form-context {
+  display: grid;
+  gap: 4px;
+  align-self: stretch;
+  min-height: 78px;
+  padding: 12px;
+  border: 1px solid #dbe7f6;
+  border-radius: 8px;
+  background: #f8fbff;
+}
+
+.form-context span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.form-context strong {
+  color: #172033;
+  font-size: 15px;
+}
+
+.form-context small {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .card-invoice-panel .section-heading > strong {
   color: #111827;
   font-size: 24px;
