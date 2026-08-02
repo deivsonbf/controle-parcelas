@@ -123,6 +123,14 @@ export type MonthlyResponse = {
   items: MonthlyInstallment[];
 };
 
+export type InvoiceCredit = {
+  id: string;
+  cardId: string;
+  amount: string;
+  paymentDate: string;
+  notes?: string | null;
+};
+
 export type CardInvoice = {
   cardId: string;
   cardName: string;
@@ -132,11 +140,14 @@ export type CardInvoice = {
   dueDay: number;
   closingDay: number;
   total: string;
+  grossTotal: string;
+  invoicePaymentsTotal: string;
   installments: number;
   oneTimeTotal: string;
   oneTimeCount: number;
   installmentTotal: string;
   installmentCount: number;
+  credits: InvoiceCredit[];
   items: MonthlyInstallment[];
 };
 

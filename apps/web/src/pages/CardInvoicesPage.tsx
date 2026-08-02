@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { Pencil, Receipt, Trash2, X } from 'lucide-react';
 import { api } from '../services/api';
-import type { CardInvoice, CardInvoicesResponse, Category, ExpenseType, MonthlyInstallment } from '../types/api';
+import type { CardInvoice, CardInvoicesResponse, Category, ExpenseType, InvoiceCredit, MonthlyInstallment } from '../types/api';
 import { currencyInputToNumber, formatCurrencyInput, formatDate, money } from '../utils';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -16,6 +16,8 @@ const expenseTypeLabels: Record<ExpenseType, string> = {
   card: 'Cartões',
   unplanned: 'Não planejada'
 };
+
+const creditKindLabel = 'Credito';
 
 const emptyPurchaseForm = {
   description: '',
@@ -47,6 +49,10 @@ function installmentKind(item: MonthlyInstallment) {
 
 type PurchaseFormState = typeof emptyPurchaseForm;
 type BulkFormState = typeof emptyBulkForm;
+
+type InvoiceRow =
+  | { rowType: 'purchase'; sortDate: string; item: MonthlyInstallment }
+  | { rowType: 'credit'; sortDate: string; item: InvoiceCredit };
 
 type InvoicePurchaseFormProps = {
   title: string;
@@ -132,7 +138,7 @@ function InvoicePurchaseForm({
 }
 
 type CardInvoiceTableProps = {
-  items: MonthlyInstallment[];
+  rows: InvoiceRow[];
   selectedIds: string[];
   admin: boolean;
   onToggle: (expenseId: string) => void;
@@ -141,8 +147,10 @@ type CardInvoiceTableProps = {
   onDelete: (item: MonthlyInstallment) => void;
 };
 
-function CardInvoiceTable({ items, selectedIds, admin, onToggle, onToggleAll, onEdit, onDelete }: CardInvoiceTableProps) {
-  const visibleExpenseIds = [...new Set(items.map((item) => item.expenseId))];
+function CardInvoiceTable({ rows, selectedIds, admin, onToggle, onToggleAll, onEdit, onDelete }: CardInvoiceTableProps) {
+  const visibleExpenseIds = [...new Set(rows
+    .filter((row): row is Extract<InvoiceRow, { rowType: 'purchase' }> => row.rowType === 'purchase')
+    .map((row) => row.item.expenseId))];
   const allSelected = visibleExpenseIds.length > 0 && visibleExpenseIds.every((id) => selectedIds.includes(id));
 
   return (
@@ -171,7 +179,25 @@ function CardInvoiceTable({ items, selectedIds, admin, onToggle, onToggleAll, on
           </tr>
         </thead>
         <tbody>
-          {items.map((item) => {
+          {rows.map((row) => {
+            if (row.rowType === 'credit') {
+              const credit = row.item;
+              return (
+                <tr key={`credit-${credit.id}`}>
+                  {admin && <td />}
+                  <td>{credit.notes ? `Credito - ${credit.notes}` : 'Credito na fatura'}</td>
+                  <td>{formatDate(credit.paymentDate)}</td>
+                  <td><span className="category-tag credit-tag">Abatimento</span></td>
+                  <td><span className="invoice-kind credit">{creditKindLabel}</span></td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>-{money(Number(credit.amount))}</td>
+                  {admin && <td />}
+                </tr>
+              );
+            }
+
+            const item = row.item;
             const kind = installmentKind(item);
             const selected = selectedIds.includes(item.expenseId);
             return (
@@ -313,9 +339,12 @@ function CardInvoicePanel({
   onEdit: (item: MonthlyInstallment) => void;
   onDelete: (item: MonthlyInstallment) => void;
 }) {
-  const sortedItems = useMemo(
-    () => [...invoice.items].sort((left, right) => right.purchaseDate.localeCompare(left.purchaseDate)),
-    [invoice.items]
+  const rows = useMemo(
+    () => [
+      ...invoice.items.map((item) => ({ rowType: 'purchase' as const, sortDate: item.purchaseDate, item })),
+      ...(invoice.credits ?? []).map((item) => ({ rowType: 'credit' as const, sortDate: item.paymentDate, item }))
+    ].sort((left, right) => right.sortDate.localeCompare(left.sortDate)),
+    [invoice.items, invoice.credits]
   );
 
   return (
@@ -332,6 +361,7 @@ function CardInvoicePanel({
         <div>
           <span>Total da fatura</span>
           <strong>{money(Number(invoice.total))}</strong>
+          <small>Bruto: {money(Number(invoice.grossTotal))}</small>
         </div>
         <div>
           <span>À vista</span>
@@ -343,11 +373,16 @@ function CardInvoicePanel({
           <strong>{money(Number(invoice.installmentTotal))}</strong>
           <small>{invoice.installmentCount} parcelas</small>
         </div>
+        <div>
+          <span>Creditos</span>
+          <strong>-{money(Number(invoice.invoicePaymentsTotal))}</strong>
+          <small>{(invoice.credits ?? []).length} abatimentos</small>
+        </div>
       </div>
 
-      {sortedItems.length > 0 ? (
+      {rows.length > 0 ? (
         <CardInvoiceTable
-          items={sortedItems}
+          rows={rows}
           selectedIds={selectedIds}
           admin={admin}
           onToggle={onToggle}

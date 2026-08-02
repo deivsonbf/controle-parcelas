@@ -247,7 +247,7 @@ router.get('/card-invoices', async (req, res) => {
     const targetMonth = query.month ?? new Date().toISOString().slice(0, 7);
     const scopedUserIds = isAdmin ? null : await getJointUserScope(req.user?.id);
 
-    const [cardsResult, installmentsResult] = await Promise.all([
+    const [cardsResult, installmentsResult, paymentsResult] = await Promise.all([
       pool.query(
         `SELECT c.id AS "cardId",
                 c.name AS "cardName",
@@ -296,6 +296,21 @@ router.get('/card-invoices', async (req, res) => {
            AND ($2::uuid[] IS NULL OR c.owner_user_id = ANY($2::uuid[]))
          ORDER BY ei.card_name, ei.purchase_date DESC, ei.description, ei.installment_number`,
         [targetMonth, scopedUserIds]
+      ),
+      pool.query(
+        `SELECT ip.id,
+                ip.card_id AS "cardId",
+                ip.amount,
+                TO_CHAR(ip.payment_date, 'YYYY-MM-DD') AS "paymentDate",
+                ip.notes
+         FROM invoice_payments ip
+         JOIN cards c ON c.id = ip.card_id
+         JOIN users owner ON owner.id = c.owner_user_id
+         WHERE ip.reference_month = TO_DATE($1, 'YYYY-MM')
+           AND owner.card_buyer_only = FALSE
+           AND ($2::uuid[] IS NULL OR c.owner_user_id = ANY($2::uuid[]))
+         ORDER BY ip.payment_date DESC, ip.created_at DESC`,
+        [targetMonth, scopedUserIds]
       )
     ]);
 
@@ -306,22 +321,35 @@ router.get('/card-invoices', async (req, res) => {
       installmentsByCard.set(installment.cardId, items);
     }
 
+    const paymentsByCard = new Map<string, typeof paymentsResult.rows>();
+    for (const payment of paymentsResult.rows) {
+      const items = paymentsByCard.get(payment.cardId) ?? [];
+      items.push(payment);
+      paymentsByCard.set(payment.cardId, items);
+    }
+
     const cards = cardsResult.rows.map((card) => {
       const items = installmentsByCard.get(card.cardId) ?? [];
+      const credits = paymentsByCard.get(card.cardId) ?? [];
       const oneTimeItems = items.filter((item) => Number(item.totalInstallments) === 1);
       const installmentItems = items.filter((item) => Number(item.totalInstallments) > 1);
-      const total = items.reduce((sum, item) => sum + Number(item.installmentAmount), 0);
+      const grossTotal = items.reduce((sum, item) => sum + Number(item.installmentAmount), 0);
+      const invoicePaymentsTotal = credits.reduce((sum, item) => sum + Number(item.amount), 0);
+      const total = grossTotal - invoicePaymentsTotal;
       const oneTimeTotal = oneTimeItems.reduce((sum, item) => sum + Number(item.installmentAmount), 0);
       const installmentTotal = installmentItems.reduce((sum, item) => sum + Number(item.installmentAmount), 0);
 
       return {
         ...card,
         total: total.toFixed(2),
+        grossTotal: grossTotal.toFixed(2),
+        invoicePaymentsTotal: invoicePaymentsTotal.toFixed(2),
         installments: items.length,
         oneTimeTotal: oneTimeTotal.toFixed(2),
         oneTimeCount: oneTimeItems.length,
         installmentTotal: installmentTotal.toFixed(2),
         installmentCount: installmentItems.length,
+        credits,
         items
       };
     });
