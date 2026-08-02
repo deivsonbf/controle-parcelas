@@ -793,6 +793,12 @@ tbody tr:hover {
   min-width: 760px;
 }
 
+.table-wrap input[type="checkbox"] {
+  width: 18px;
+  min-height: 18px;
+  accent-color: #2563eb;
+}
+
 .category-list {
   display: grid;
   gap: 10px;
@@ -939,6 +945,29 @@ tbody tr:hover {
   color: #64748b;
   font-size: 12px;
   font-weight: 700;
+}
+
+.bulk-actions-panel {
+  display: grid;
+  gap: 16px;
+  border-color: #bfdbfe;
+  background:
+    linear-gradient(135deg, rgba(37, 99, 235, 0.08), transparent 62%),
+    #fff;
+}
+
+.bulk-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(120px, 1fr)) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.bulk-actions-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
 }
 
 .card-invoice-panel .section-heading > strong {
@@ -1554,6 +1583,7 @@ tbody tr:hover {
   .stats-grid,
   .split-grid,
   .form-grid,
+  .bulk-actions-grid,
   .invoice-summary-grid,
   .pix-panel {
     grid-template-columns: 1fr;

@@ -274,6 +274,8 @@ router.get('/card-invoices', async (req, res) => {
                 TO_CHAR(ei.payment_date, 'YYYY-MM-DD') AS "paymentDate",
                 ei.description,
                 ei.expense_type AS "expenseType",
+                e.recurring,
+                e.notes,
                 ei.total_amount AS "totalAmount",
                 TO_CHAR(ei.purchase_date, 'YYYY-MM-DD') AS "purchaseDate",
                 ei.user_id AS "userId",
@@ -285,6 +287,7 @@ router.get('/card-invoices', async (req, res) => {
                 ei.category_name AS "categoryName",
                 ei.category_color AS "categoryColor"
          FROM expense_installments ei
+         JOIN expenses e ON e.id = ei.expense_id
          JOIN cards c ON c.id = ei.card_id
          JOIN users owner ON owner.id = c.owner_user_id
          WHERE ei.reference_month = TO_DATE($1, 'YYYY-MM')

@@ -19,6 +19,8 @@ export type MonthlyInstallment = {
   paymentDate: string;
   description: string;
   expenseType: ExpenseType;
+  recurring?: boolean;
+  notes?: string | null;
   totalAmount: string;
   purchaseDate: string;
   userId: string;

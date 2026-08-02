@@ -26,6 +26,27 @@ const querySchema = z.object({
   cardId: z.string().uuid().optional()
 });
 
+const bulkDeleteSchema = z.object({
+  ids: z.array(z.string().uuid()).min(1)
+});
+
+const bulkUpdateSchema = z.object({
+  ids: z.array(z.string().uuid()).min(1),
+  targetCardId: z.string().uuid().optional(),
+  categoryId: z.string().uuid().optional(),
+  expenseType: z.enum(['fixed', 'card', 'unplanned']).optional(),
+  purchaseDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  recurring: z.boolean().optional(),
+  notes: z.string().optional().nullable()
+}).refine((body) => (
+  body.targetCardId ||
+  body.categoryId ||
+  body.expenseType ||
+  body.purchaseDate ||
+  body.recurring !== undefined ||
+  body.notes !== undefined
+), 'Informe ao menos uma alteracao');
+
 router.get('/', async (req, res) => {
   try {
     const query = querySchema.parse(req.query);
@@ -75,6 +96,59 @@ router.post('/', requireRole('admin'), async (req, res) => {
       ]
     );
     res.status(201).json(result.rows[0]);
+  } catch (error) {
+    sendError(res, error);
+  }
+});
+
+router.patch('/bulk', requireRole('admin'), async (req, res) => {
+  try {
+    const body = bulkUpdateSchema.parse(req.body);
+    const result = await pool.query(
+      `WITH target_card AS (
+         SELECT id, owner_user_id
+         FROM cards
+         WHERE id = $2
+       )
+       UPDATE expenses e
+       SET card_id = COALESCE($2, e.card_id),
+           user_id = CASE
+             WHEN $2::uuid IS NULL THEN e.user_id
+             ELSE COALESCE((SELECT owner_user_id FROM target_card), e.user_id)
+           END,
+           category_id = COALESCE($3, e.category_id),
+           expense_type = COALESCE($4, e.expense_type),
+           purchase_date = COALESCE($5, e.purchase_date),
+           recurring = COALESCE($6, e.recurring),
+           notes = CASE WHEN $7::boolean THEN $8 ELSE e.notes END,
+           updated_at = NOW()
+       WHERE e.id = ANY($1::uuid[])
+       RETURNING e.id`,
+      [
+        body.ids,
+        body.targetCardId ?? null,
+        body.categoryId ?? null,
+        body.expenseType ?? null,
+        body.purchaseDate ?? null,
+        body.recurring ?? null,
+        body.notes !== undefined,
+        body.notes ?? null
+      ]
+    );
+    res.json({ updated: result.rowCount, ids: result.rows.map((row) => row.id) });
+  } catch (error) {
+    sendError(res, error);
+  }
+});
+
+router.post('/bulk-delete', requireRole('admin'), async (req, res) => {
+  try {
+    const body = bulkDeleteSchema.parse(req.body);
+    const result = await pool.query(
+      `DELETE FROM expenses WHERE id = ANY($1::uuid[]) RETURNING id`,
+      [body.ids]
+    );
+    res.json({ deleted: result.rowCount, ids: result.rows.map((row) => row.id) });
   } catch (error) {
     sendError(res, error);
   }
