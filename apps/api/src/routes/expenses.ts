@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { pool } from '../db/pool.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
@@ -101,26 +101,26 @@ router.post('/', requireRole('admin'), async (req, res) => {
   }
 });
 
-router.patch('/bulk', requireRole('admin'), async (req, res) => {
+async function updateExpensesInBulk(req: Request, res: Response) {
   try {
     const body = bulkUpdateSchema.parse(req.body);
     const result = await pool.query(
       `WITH target_card AS (
          SELECT id, owner_user_id
          FROM cards
-         WHERE id = $2
+         WHERE id = $2::uuid
        )
        UPDATE expenses e
-       SET card_id = COALESCE($2, e.card_id),
+       SET card_id = COALESCE($2::uuid, e.card_id),
            user_id = CASE
              WHEN $2::uuid IS NULL THEN e.user_id
              ELSE COALESCE((SELECT owner_user_id FROM target_card), e.user_id)
            END,
-           category_id = COALESCE($3, e.category_id),
-           expense_type = COALESCE($4, e.expense_type),
-           purchase_date = COALESCE($5, e.purchase_date),
-           recurring = COALESCE($6, e.recurring),
-           notes = CASE WHEN $7::boolean THEN $8 ELSE e.notes END,
+           category_id = COALESCE($3::uuid, e.category_id),
+           expense_type = COALESCE($4::text, e.expense_type),
+           purchase_date = COALESCE($5::date, e.purchase_date),
+           recurring = COALESCE($6::boolean, e.recurring),
+           notes = CASE WHEN $7::boolean THEN $8::text ELSE e.notes END,
            updated_at = NOW()
        WHERE e.id = ANY($1::uuid[])
        RETURNING e.id`,
@@ -139,7 +139,10 @@ router.patch('/bulk', requireRole('admin'), async (req, res) => {
   } catch (error) {
     sendError(res, error);
   }
-});
+}
+
+router.patch('/bulk', requireRole('admin'), updateExpensesInBulk);
+router.post('/bulk-update', requireRole('admin'), updateExpensesInBulk);
 
 router.post('/bulk-delete', requireRole('admin'), async (req, res) => {
   try {

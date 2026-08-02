@@ -537,8 +537,8 @@ export function CardInvoicesPage() {
 
     setSubmitting(true);
     try {
-      await api('/expenses/bulk', {
-        method: 'PATCH',
+      await api('/expenses/bulk-update', {
+        method: 'POST',
         body: JSON.stringify(body)
       });
       toast.success('Compras atualizadas', 'As faturas foram recalculadas.');
