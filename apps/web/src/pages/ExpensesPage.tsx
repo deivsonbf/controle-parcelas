@@ -1,5 +1,5 @@
-import { FormEvent, useEffect, useState } from 'react';
-import { Pencil, Trash2, X } from 'lucide-react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { Pencil, Search, Trash2, X } from 'lucide-react';
 import { api } from '../services/api';
 import type { Card, Category, Expense, User } from '../types/api';
 import { currencyInputToNumber, formatCurrencyInput, formatDate, money } from '../utils';
@@ -35,6 +35,7 @@ export function ExpensesPage() {
   const [cards, setCards] = useState<Card[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [form, setForm] = useState(emptyForm);
+  const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState('');
   const [selectedCard, setSelectedCard] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -62,6 +63,27 @@ export function ExpensesPage() {
   }
 
   useEffect(load, [isAdmin, selectedCard, selectedUser]);
+
+  const filteredExpenses = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+    if (!normalizedSearch) return expenses;
+
+    return expenses.filter((item) => {
+      const searchable = [
+        item.description,
+        item.notes ?? '',
+        item.userName,
+        item.cardName,
+        item.categoryName,
+        expenseTypeLabels[item.expenseType],
+        item.purchaseDate,
+        money(Number(item.totalAmount)),
+        `${item.installments}x`
+      ].join(' ').toLowerCase();
+
+      return searchable.includes(normalizedSearch);
+    });
+  }, [expenses, searchTerm]);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -125,8 +147,25 @@ export function ExpensesPage() {
           <h1>Compras</h1>
           <p>Cadastre compras no cartao e acompanhe como elas entram nas faturas mensais.</p>
         </div>
-        {isAdmin && (
-          <div className="filters">
+        <div className="filters expenses-filters">
+          <label className="form-field search-field">
+            Pesquisar compras
+            <div className="search-input">
+              <Search size={17} />
+              <input
+                placeholder="Descricao, observacoes, cartao, categoria..."
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+              />
+              {searchTerm && (
+                <button type="button" title="Limpar pesquisa" aria-label="Limpar pesquisa" onClick={() => setSearchTerm('')}>
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+          </label>
+          {isAdmin && (
+            <>
             <label className="form-field">
               Usuario
               <select value={selectedUser} onChange={(event) => setSelectedUser(event.target.value)}>
@@ -141,8 +180,9 @@ export function ExpensesPage() {
                 {cards.map((item) => <option key={item.id} value={item.id}>{item.name} **** {item.lastFour}</option>)}
               </select>
             </label>
-          </div>
-        )}
+            </>
+          )}
+        </div>
       </div>
 
       {isAdmin && (
@@ -214,6 +254,12 @@ export function ExpensesPage() {
       )}
 
       <div className="panel">
+        <div className="section-heading">
+          <div>
+            <h2>Compras cadastradas</h2>
+            <span>{filteredExpenses.length} de {expenses.length} compras exibidas</span>
+          </div>
+        </div>
         <div className="table-wrap">
           <table>
             <thead>
@@ -232,7 +278,7 @@ export function ExpensesPage() {
               </tr>
             </thead>
             <tbody>
-              {expenses.map((item) => (
+              {filteredExpenses.map((item) => (
                 <tr key={item.id}>
                   <td>{item.description}</td>
                   <td>{formatDate(item.purchaseDate)}</td>
@@ -263,6 +309,9 @@ export function ExpensesPage() {
             </tbody>
           </table>
         </div>
+        {filteredExpenses.length === 0 && (
+          <p className="empty-state">Nenhuma compra encontrada para a pesquisa atual.</p>
+        )}
       </div>
     </section>
   );

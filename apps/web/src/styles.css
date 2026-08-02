@@ -1016,6 +1016,53 @@ tbody tr:hover {
   flex: 1 1 0;
 }
 
+.expenses-filters {
+  min-width: min(820px, 100%);
+  flex-wrap: wrap;
+}
+
+.expenses-filters .search-field {
+  flex: 1 1 280px;
+}
+
+.search-input {
+  position: relative;
+  min-width: 0;
+}
+
+.search-input svg {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  color: #64748b;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.search-input input {
+  padding-left: 38px;
+  padding-right: 42px;
+}
+
+.search-input button {
+  position: absolute;
+  top: 50%;
+  right: 7px;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: transparent;
+  color: #64748b;
+  transform: translateY(-50%);
+}
+
+.search-input button:hover {
+  background: #eef2f7;
+  color: #334155;
+}
+
 .compact-form {
   grid-template-columns: minmax(180px, 1.4fr) minmax(140px, 0.8fr) minmax(150px, 0.8fr) minmax(180px, 1.2fr) max-content;
   margin-bottom: 18px;
