@@ -858,6 +858,51 @@ tbody tr:hover {
   gap: 18px;
 }
 
+.card-invoice-tabs {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+  overflow-x: auto;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: var(--shadow-sm);
+}
+
+.card-invoice-tabs button {
+  min-width: 170px;
+  min-height: 58px;
+  display: grid;
+  gap: 4px;
+  align-content: center;
+  flex: 0 0 auto;
+  border-radius: 8px;
+  padding: 8px 13px;
+  background: transparent;
+  color: #475569;
+  text-align: left;
+}
+
+.card-invoice-tabs button:hover,
+.card-invoice-tabs button.active {
+  background: #e8f0ff;
+  color: #1d4ed8;
+}
+
+.card-invoice-tabs span {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-invoice-tabs strong {
+  color: #172033;
+  font-size: 15px;
+}
+
 .card-invoice-panel {
   display: grid;
   gap: 18px;

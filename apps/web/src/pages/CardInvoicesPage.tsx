@@ -106,6 +106,7 @@ export function CardInvoicesPage() {
   const toast = useToast();
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
   const [data, setData] = useState<CardInvoicesResponse | null>(null);
+  const [activeCardId, setActiveCardId] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -113,12 +114,23 @@ export function CardInvoicesPage() {
 
     setLoading(true);
     api<CardInvoicesResponse>(`/reports/card-invoices?month=${month}`)
-      .then(setData)
+      .then((response) => {
+        setData(response);
+        setActiveCardId((current) => {
+          if (current && response.cards.some((card) => card.cardId === current)) return current;
+          return response.cards[0]?.cardId ?? '';
+        });
+      })
       .catch((error) => {
         toast.error('Erro ao carregar faturas do cartão', error instanceof Error ? error.message : undefined);
       })
       .finally(() => setLoading(false));
   }, [month, toast, user?.cardBuyerOnly]);
+
+  const activeInvoice = useMemo(
+    () => data?.cards.find((card) => card.cardId === activeCardId) ?? data?.cards[0] ?? null,
+    [activeCardId, data?.cards]
+  );
 
   if (user?.cardBuyerOnly) {
     return (
@@ -163,10 +175,26 @@ export function CardInvoicesPage() {
 
       {loading ? (
         <div className="panel chart-state">Carregando faturas...</div>
-      ) : data && data.cards.length > 0 ? (
-        <div className="card-invoices-list">
-          {data.cards.map((invoice) => <CardInvoicePanel key={invoice.cardId} invoice={invoice} />)}
-        </div>
+      ) : data && data.cards.length > 0 && activeInvoice ? (
+        <>
+          <div className="card-invoice-tabs" role="tablist" aria-label="Cartões da fatura">
+            {data.cards.map((invoice) => (
+              <button
+                key={invoice.cardId}
+                type="button"
+                className={activeInvoice.cardId === invoice.cardId ? 'active' : ''}
+                onClick={() => setActiveCardId(invoice.cardId)}
+                role="tab"
+                aria-selected={activeInvoice.cardId === invoice.cardId}
+              >
+                <span>{invoice.cardName} **** {invoice.cardLastFour}</span>
+                <strong>{money(Number(invoice.total))}</strong>
+              </button>
+            ))}
+          </div>
+
+          <CardInvoicePanel invoice={activeInvoice} />
+        </>
       ) : (
         <div className="panel empty-state">
           <Receipt size={20} />
