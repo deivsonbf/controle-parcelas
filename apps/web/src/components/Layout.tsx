@@ -1,4 +1,4 @@
-import { BarChart3, CalendarClock, CreditCard, Folders, Home, LogOut, Receipt, WalletCards, Users } from 'lucide-react';
+import { CalendarClock, CreditCard, Folders, Home, LogOut, Receipt, WalletCards, Users } from 'lucide-react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -28,8 +28,6 @@ export function Layout() {
           <NavLink to="/"><Home size={18} />Resumo</NavLink>
           {!user?.cardBuyerOnly && <NavLink to="/card-invoices"><CreditCard size={18} />Fatura do cartão</NavLink>}
           {isAdmin && <NavLink to="/third-party-card-invoices"><Receipt size={18} />Compras de terceiros</NavLink>}
-          <NavLink to="/expenses"><Receipt size={18} />Compras</NavLink>
-          <NavLink to="/installment-projection"><BarChart3 size={18} />Projeção</NavLink>
           {isAdmin && <NavLink to="/financial-control"><WalletCards size={18} />Controle financeiro</NavLink>}
           {!user?.cardBuyerOnly && <NavLink to="/fixed-expenses"><CalendarClock size={18} />Despesas mensais</NavLink>}
           {isAdmin && <NavLink to="/users"><Users size={18} />Usuarios</NavLink>}
